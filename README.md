@@ -32,12 +32,10 @@ Releases will contain the touchscreen firmware that matches. If you want the sou
 
 Marlin 2.0 takes this popular RepRap firmware to the next level by adding support for much faster 32-bit and ARM-based boards while improving support for 8-bit AVR boards. Read about Marlin's decision to use a "Hardware Abstraction Layer" below.
 
-## Building Marlin 2.0
+## Building and installing Marlin 2.0 for LKx Pro
 
-To build Marlin 2.0 you'll need [Arduino IDE 1.8.8 or newer](https://www.arduino.cc/en/main/software) or [PlatformIO](http://docs.platformio.org/en/latest/ide.html#platformio-ide). Detailed build and install instructions are posted at:
-
-  - [Installing Marlin (Arduino)](http://marlinfw.org/docs/basics/install_arduino.html)
-  - [Installing Marlin (VSCode)](http://marlinfw.org/docs/basics/install_platformio_vscode.html).
+Baddflash wrote detailed instructions to build and install the printer firmware as well as the screen firmware which you also have to update.
+Please follow his instructions here: https://github.com/Baddflash/LK4-Pro-Firmware-Tutorial
 
 ### Supported Platforms
   

@@ -46,6 +46,9 @@
 #include "../../feature/pause.h"
 #include "../marlinui.h"
 #include "../../gcode/gcode.h"
+#if M600_PURGE_MORE_RESUMABLE
+  #include "../../feature/pause.h"
+#endif
 
 namespace ExtUI {
 
@@ -80,7 +83,8 @@ namespace ExtUI {
   void injectCommands(char * const);
   bool commandsInQueue();
 
-  GcodeSuite::MarlinBusyState getMachineBusyState();
+  GcodeSuite::MarlinBusyState getHostKeepaliveState();
+  bool getHostKeepaliveIsPaused();
 
   bool isHeaterIdle(const heater_t);
   bool isHeaterIdle(const extruder_t);
@@ -191,7 +195,11 @@ namespace ExtUI {
     void setHostResponse(const uint8_t);
   #endif
 
-  inline void simulateUserClick() { ui.lcd_clicked = true; }
+  inline void simulateUserClick() {
+    #if ANY(HAS_LCD_MENU, EXTENSIBLE_UI, DWIN_CREALITY_LCD_JYERSUI)
+      ui.lcd_clicked = true;
+    #endif
+  }
 
   #if ENABLED(PRINTCOUNTER)
     char* getFailedPrints_str(char buffer[21]);
@@ -217,13 +225,19 @@ namespace ExtUI {
   void setFeedrate_mm_s(const feedRate_t);
   void setMinFeedrate_mm_s(const feedRate_t);
   void setMinTravelFeedrate_mm_s(const feedRate_t);
-  void setPrintingAcceleration_mm_s2(const_float_t );
-  void setRetractAcceleration_mm_s2(const_float_t );
-  void setTravelAcceleration_mm_s2(const_float_t );
-  void setFeedrate_percent(const_float_t );
+  void setPrintingAcceleration_mm_s2(const_float_t);
+  void setRetractAcceleration_mm_s2(const_float_t);
+  void setTravelAcceleration_mm_s2(const_float_t);
+  void setFeedrate_percent(const_float_t);
   void setFlow_percent(const int16_t, const extruder_t);
   bool awaitingUserConfirm();
   void setUserConfirmed();
+
+  #if M600_PURGE_MORE_RESUMABLE
+    void setPauseMenuResponse(PauseMenuResponse);
+    extern PauseMessage pauseModeStatus;
+    PauseMode getPauseMode();
+  #endif
 
   #if ENABLED(LIN_ADVANCE)
     float getLinearAdvance_mm_mm_s(const extruder_t);
@@ -232,7 +246,7 @@ namespace ExtUI {
 
   #if HAS_JUNCTION_DEVIATION
     float getJunctionDeviation_mm();
-    void setJunctionDeviation_mm(const_float_t );
+    void setJunctionDeviation_mm(const_float_t);
   #else
     float getAxisMaxJerk_mm_s(const axis_t);
     float getAxisMaxJerk_mm_s(const extruder_t);
@@ -259,7 +273,7 @@ namespace ExtUI {
   #endif
 
   float getZOffset_mm();
-  void setZOffset_mm(const_float_t );
+  void setZOffset_mm(const_float_t);
 
   #if HAS_BED_PROBE
     float getProbeOffset_mm(const axis_t);
@@ -271,11 +285,11 @@ namespace ExtUI {
     void setAxisBacklash_mm(const_float_t, const axis_t);
 
     float getBacklashCorrection_percent();
-    void setBacklashCorrection_percent(const_float_t );
+    void setBacklashCorrection_percent(const_float_t);
 
     #ifdef BACKLASH_SMOOTHING_MM
       float getBacklashSmoothing_mm();
-      void setBacklashSmoothing_mm(const_float_t );
+      void setBacklashSmoothing_mm(const_float_t);
     #endif
   #endif
 
@@ -287,7 +301,7 @@ namespace ExtUI {
 
     #if HAS_FILAMENT_RUNOUT_DISTANCE
       float getFilamentRunoutDistance_mm();
-      void setFilamentRunoutDistance_mm(const_float_t );
+      void setFilamentRunoutDistance_mm(const_float_t);
     #endif
   #endif
 
@@ -297,7 +311,7 @@ namespace ExtUI {
 
     #if DISABLED(CASE_LIGHT_NO_BRIGHTNESS)
       float getCaseLightBrightness_percent();
-      void setCaseLightBrightness_percent(const_float_t );
+      void setCaseLightBrightness_percent(const_float_t);
     #endif
   #endif
 
@@ -306,15 +320,15 @@ namespace ExtUI {
     float getPIDValues_Ki(const extruder_t);
     float getPIDValues_Kd(const extruder_t);
     void setPIDValues(const_float_t, const_float_t , const_float_t , extruder_t);
-    void startPIDTune(const_float_t, extruder_t);
+    void startPIDTune(const celsius_t, extruder_t);
   #endif
 
   #if ENABLED(PIDTEMPBED)
     float getBedPIDValues_Kp();
     float getBedPIDValues_Ki();
     float getBedPIDValues_Kd();
-    void setBedPIDValues(const_float_t, const_float_t , const_float_t );
-    void startBedPIDTune(const_float_t );
+    void setBedPIDValues(const_float_t, const_float_t , const_float_t);
+    void startBedPIDTune(const celsius_t);
   #endif
 
 

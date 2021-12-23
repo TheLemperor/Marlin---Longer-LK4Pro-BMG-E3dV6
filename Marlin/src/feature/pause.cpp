@@ -40,29 +40,31 @@
 #include "../module/temperature.h"
 
 #if ENABLED(FWRETRACT)
-  #include "fwretract.h"
+#include "fwretract.h"
 #endif
 
 #if HAS_FILAMENT_SENSOR
-  #include "runout.h"
+#include "runout.h"
 #endif
 
 #if ENABLED(HOST_ACTION_COMMANDS)
-  #include "host_actions.h"
+#include "host_actions.h"
 #endif
 
 #if ENABLED(EXTENSIBLE_UI)
-  #include "../lcd/extui/ui_api.h"
+#include "../lcd/extui/ui_api.h"
+#elif ENABLED(DWIN_CREALITY_LCD_ENHANCED)
+#include "../lcd/e3v2/enhanced/dwin.h"
 #endif
 
 #include "../lcd/marlinui.h"
 
 #if HAS_BUZZER
-  #include "../libs/buzzer.h"
+#include "../libs/buzzer.h"
 #endif
 
 #if ENABLED(POWER_LOSS_RECOVERY)
-  #include "powerloss.h"
+#include "powerloss.h"
 #endif
 
 #include "../libs/nozzle.h"
@@ -76,47 +78,54 @@
 static xyze_pos_t resume_position;
 
 #if M600_PURGE_MORE_RESUMABLE
-  PauseMenuResponse pause_menu_response;
-  PauseMode pause_mode = PAUSE_MODE_PAUSE_PRINT;
+PauseMenuResponse pause_menu_response;
+PauseMode pause_mode = PAUSE_MODE_PAUSE_PRINT;
 #endif
 
 fil_change_settings_t fc_settings[EXTRUDERS];
 
 #if ENABLED(SDSUPPORT)
-  #include "../sd/cardreader.h"
+#include "../sd/cardreader.h"
 #endif
 
 #if ENABLED(EMERGENCY_PARSER)
-  #define _PMSG(L) L##_M108
+#define _PMSG(L) L##_M108
 #else
-  #define _PMSG(L) L##_LCD
+#define _PMSG(L) L##_LCD
 #endif
 
 #if HAS_BUZZER
-  static void impatient_beep(const int8_t max_beep_count, const bool restart=false) {
+static void impatient_beep(const int8_t max_beep_count, const bool restart = false)
+{
 
-    if (TERN0(HAS_LCD_MENU, pause_mode == PAUSE_MODE_PAUSE_PRINT)) return;
+    if (TERN0(HAS_LCD_MENU, pause_mode == PAUSE_MODE_PAUSE_PRINT))
+        return;
 
     static millis_t next_buzz = 0;
     static int8_t runout_beep = 0;
 
-    if (restart) next_buzz = runout_beep = 0;
+    if (restart)
+        next_buzz = runout_beep = 0;
 
     const bool always = max_beep_count < 0;
 
     const millis_t ms = millis();
-    if (ELAPSED(ms, next_buzz)) {
-      if (always || runout_beep < max_beep_count + 5) { // Only beep as long as we're supposed to
-        next_buzz = ms + ((always || runout_beep < max_beep_count) ? 1000 : 500);
-        BUZZ(50, 880 - (runout_beep & 1) * 220);
-        runout_beep++;
-      }
+    if (ELAPSED(ms, next_buzz))
+    {
+        if (always || runout_beep < max_beep_count + 5)
+        { // Only beep as long as we're supposed to
+            next_buzz = ms + ((always || runout_beep < max_beep_count) ? 1000 : 500);
+            BUZZ(50, 880 - (runout_beep & 1) * 220);
+            runout_beep++;
+        }
     }
-  }
-  inline void first_impatient_beep(const int8_t max_beep_count) { impatient_beep(max_beep_count, true); }
+}
+inline void first_impatient_beep(const int8_t max_beep_count) { impatient_beep(max_beep_count, true); }
 #else
-  inline void impatient_beep(const int8_t, const bool=false) {}
-  inline void first_impatient_beep(const int8_t) {}
+inline void impatient_beep(const int8_t, const bool = false)
+{
+}
+inline void first_impatient_beep(const int8_t) {}
 #endif
 
 /**
@@ -128,37 +137,39 @@ fil_change_settings_t fc_settings[EXTRUDERS];
  *
  * Returns 'true' if heating was completed, 'false' for abort
  */
-static bool ensure_safe_temperature(const bool wait=true, const PauseMode mode=PAUSE_MODE_SAME) {
-  DEBUG_SECTION(est, "ensure_safe_temperature", true);
-  DEBUG_ECHOLNPAIR("... wait:", wait, " mode:", mode);
+static bool ensure_safe_temperature(const bool wait = true, const PauseMode mode = PAUSE_MODE_SAME)
+{
+    DEBUG_SECTION(est, "ensure_safe_temperature", true);
+    DEBUG_ECHOLNPGM("... wait:", wait, " mode:", mode);
 
-  #if ENABLED(PREVENT_COLD_EXTRUSION)
+#if ENABLED(PREVENT_COLD_EXTRUSION)
     if (!DEBUGGING(DRYRUN) && thermalManager.targetTooColdToExtrude(active_extruder))
-      thermalManager.setTargetHotend(thermalManager.extrude_min_temp, active_extruder);
-  #endif
-  ui.pause_show_message(PAUSE_MESSAGE_HEATING, mode);
-  TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_HEATING, mode));
+        thermalManager.setTargetHotend(thermalManager.extrude_min_temp, active_extruder);
+#endif
+    ui.pause_show_message(PAUSE_MESSAGE_HEATING, mode);
+    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_HEATING, mode));
 
-  UNUSED(mode);
+    UNUSED(mode);
 
+    if (wait)
+        return thermalManager.wait_for_hotend(active_extruder);
 
-  if (wait) return thermalManager.wait_for_hotend(active_extruder);
+    // Allow interruption by Emergency Parser M108
+    wait_for_heatup = TERN1(PREVENT_COLD_EXTRUSION, !thermalManager.allow_cold_extrude);
+    while (wait_for_heatup && ABS(thermalManager.wholeDegHotend(active_extruder) - thermalManager.degTargetHotend(active_extruder)) > (TEMP_WINDOW))
+        idle();
+    wait_for_heatup = false;
 
-  // Allow interruption by Emergency Parser M108
-  wait_for_heatup = TERN1(PREVENT_COLD_EXTRUSION, !thermalManager.allow_cold_extrude);
-  while (wait_for_heatup && ABS(thermalManager.wholeDegHotend(active_extruder) - thermalManager.degTargetHotend(active_extruder)) > (TEMP_WINDOW))
-    idle();
-  wait_for_heatup = false;
-
-  #if ENABLED(PREVENT_COLD_EXTRUSION)
+#if ENABLED(PREVENT_COLD_EXTRUSION)
     // A user can cancel wait-for-heating with M108
-    if (!DEBUGGING(DRYRUN) && thermalManager.targetTooColdToExtrude(active_extruder)) {
-      SERIAL_ECHO_MSG(STR_ERR_HOTEND_TOO_COLD);
-      return false;
+    if (!DEBUGGING(DRYRUN) && thermalManager.targetTooColdToExtrude(active_extruder))
+    {
+        SERIAL_ECHO_MSG(STR_ERR_HOTEND_TOO_COLD);
+        return false;
     }
-  #endif
+#endif
 
-  return true;
+    return true;
 }
 
 /**
@@ -173,120 +184,155 @@ static bool ensure_safe_temperature(const bool wait=true, const PauseMode mode=P
  *
  * Returns 'true' if load was completed, 'false' for abort
  */
-bool load_filament(const_float_t slow_load_length/*=0*/, const_float_t fast_load_length/*=0*/, const_float_t purge_length/*=0*/, const int8_t max_beep_count/*=0*/,
-                   const bool show_lcd/*=false*/, const bool pause_for_user/*=false*/,
-                   const PauseMode mode/*=PAUSE_MODE_PAUSE_PRINT*/
-                   DXC_ARGS
-) {
-  DEBUG_SECTION(lf, "load_filament", true);
-  DEBUG_ECHOLNPAIR("... slowlen:", slow_load_length, " fastlen:", fast_load_length, " purgelen:", purge_length, " maxbeep:", max_beep_count, " showlcd:", show_lcd, " pauseforuser:", pause_for_user, " pausemode:", mode DXC_SAY);
+bool load_filament(const_float_t slow_load_length /*=0*/, const_float_t fast_load_length /*=0*/, const_float_t purge_length /*=0*/, const int8_t max_beep_count /*=0*/,
+                   const bool show_lcd /*=false*/, const bool pause_for_user /*=false*/,
+                   const PauseMode mode /*=PAUSE_MODE_PAUSE_PRINT*/
+                       DXC_ARGS)
+{
+    DEBUG_SECTION(lf, "load_filament", true);
+    DEBUG_ECHOLNPGM("... slowlen:", slow_load_length, " fastlen:", fast_load_length, " purgelen:", purge_length, " maxbeep:", max_beep_count, " showlcd:", show_lcd, " pauseforuser:", pause_for_user, " pausemode:", mode DXC_SAY);
 
-  if (!ensure_safe_temperature(false, mode)) {
-    if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_STATUS, mode);
-    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_STATUS, mode));
+    if (!ensure_safe_temperature(false, mode))
+    {
+        if (show_lcd)
+            ui.pause_show_message(PAUSE_MESSAGE_STATUS, mode);
+        TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_STATUS, mode));
 
-    return false;
-  }
-
-  if (pause_for_user) {
-    if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_INSERT, mode);
-    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_INSERT, mode));
-
-    SERIAL_ECHO_MSG(_PMSG(STR_FILAMENT_CHANGE_INSERT));
-
-    first_impatient_beep(max_beep_count);
-
-    KEEPALIVE_STATE(PAUSED_FOR_USER);
-    wait_for_user = true;    // LCD click or M108 will clear this
-    #if ENABLED(HOST_PROMPT_SUPPORT)
-      const char tool = '0' + TERN0(MULTI_FILAMENT_SENSOR, active_extruder);
-      host_prompt_do(PROMPT_USER_CONTINUE, PSTR("Load Filament T"), tool, CONTINUE_STR);
-    #endif
-    //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(PSTR("Load Filament")));
-    while (wait_for_user) {
-      impatient_beep(max_beep_count);
-      idle_no_sleep();
+        return false;
     }
-  }
 
-  if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_LOAD, mode);
-  TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_LOAD, mode));
+    if (pause_for_user)
+    {
+        if (show_lcd)
+            ui.pause_show_message(PAUSE_MESSAGE_INSERT, mode);
+        TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_INSERT, mode));
 
-  #if ENABLED(DUAL_X_CARRIAGE)
-    const int8_t saved_ext        = active_extruder;
+        SERIAL_ECHO_MSG(_PMSG(STR_FILAMENT_CHANGE_INSERT));
+
+        first_impatient_beep(max_beep_count);
+
+        KEEPALIVE_STATE(PAUSED_FOR_USER);
+        wait_for_user = true; // LCD click or M108 will clear this
+
+        TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(PSTR("Load Filament")));
+
+#if ENABLED(HOST_PROMPT_SUPPORT)
+        const char tool = '0' + TERN0(MULTI_FILAMENT_SENSOR, active_extruder);
+        host_prompt_do(PROMPT_USER_CONTINUE, PSTR("Load Filament T"), tool, CONTINUE_STR);
+#endif
+        while (wait_for_user)
+        {
+            impatient_beep(max_beep_count);
+#if BOTH(FILAMENT_CHANGE_RESUME_ON_INSERT, FILAMENT_RUNOUT_SENSOR)
+#if ENABLED(MULTI_FILAMENT_SENSOR)
+#define _CASE_INSERTED(N)                                       \
+    case N - 1:                                                 \
+        if (READ(FIL_RUNOUT##N##_PIN) != FIL_RUNOUT##N##_STATE) \
+            wait_for_user = false;                              \
+        break;
+            switch (active_extruder)
+            {
+                REPEAT_1(NUM_RUNOUT_SENSORS, _CASE_INSERTED)
+            }
+#else
+            if (READ(FIL_RUNOUT_PIN) != FIL_RUNOUT_STATE)
+                wait_for_user = false;
+#endif
+#endif
+            idle_no_sleep();
+        }
+    }
+
+    if (show_lcd)
+        ui.pause_show_message(PAUSE_MESSAGE_LOAD, mode);
+    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_LOAD, mode));
+
+#if ENABLED(DUAL_X_CARRIAGE)
+    const int8_t saved_ext = active_extruder;
     const bool saved_ext_dup_mode = extruder_duplication_enabled;
     set_duplication_enabled(false, DXC_ext);
-  #endif
+#endif
 
-  // Slow Load filament
-  if (slow_load_length) unscaled_e_move(slow_load_length, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE);
+    TERN_(BELTPRINTER, do_blocking_move_to_xy(0.00, 50.00));
 
-  // Fast Load Filament
-  if (fast_load_length) {
-    #if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
-      const float saved_acceleration = planner.settings.retract_acceleration;
-      planner.settings.retract_acceleration = FILAMENT_CHANGE_FAST_LOAD_ACCEL;
-    #endif
+    // Slow Load filament
+    if (slow_load_length)
+        unscaled_e_move(slow_load_length, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE);
 
-    unscaled_e_move(fast_load_length, FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
+    // Fast Load Filament
+    if (fast_load_length)
+    {
+#if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
+        const float saved_acceleration = planner.settings.retract_acceleration;
+        planner.settings.retract_acceleration = FILAMENT_CHANGE_FAST_LOAD_ACCEL;
+#endif
 
-    #if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
-      planner.settings.retract_acceleration = saved_acceleration;
-    #endif
-  }
+        unscaled_e_move(fast_load_length, FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
 
-  #if ENABLED(DUAL_X_CARRIAGE)      // Tie the two extruders movement back together.
+#if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
+        planner.settings.retract_acceleration = saved_acceleration;
+#endif
+    }
+
+#if ENABLED(DUAL_X_CARRIAGE) // Tie the two extruders movement back together.
     set_duplication_enabled(saved_ext_dup_mode, saved_ext);
-  #endif
+#endif
 
-  #if ENABLED(ADVANCED_PAUSE_CONTINUOUS_PURGE)
+#if ENABLED(ADVANCED_PAUSE_CONTINUOUS_PURGE)
 
-    if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_PURGE);
+    if (show_lcd)
+        ui.pause_show_message(PAUSE_MESSAGE_PURGE);
     TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_PURGE, PAUSE_MODE_SAME));
 
-    TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, PSTR("Filament Purging..."), CONTINUE_STR));
-//    TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(PSTR("Filament Purging...")));
+    //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_FILAMENT_CHANGE_PURGE)));
+    TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, GET_TEXT(MSG_FILAMENT_CHANGE_PURGE), CONTINUE_STR));
+    TERN_(DWIN_CREALITY_LCD_ENHANCED, DWIN_Popup_Confirm(ICON_BLTouch, GET_TEXT(MSG_FILAMENT_CHANGE_PURGE), CONTINUE_STR));
     wait_for_user = true; // A click or M108 breaks the purge_length loop
     for (float purge_count = purge_length; purge_count > 0 && wait_for_user; --purge_count)
-      unscaled_e_move(1, ADVANCED_PAUSE_PURGE_FEEDRATE);
+        unscaled_e_move(1, ADVANCED_PAUSE_PURGE_FEEDRATE);
     wait_for_user = false;
 
-  #else
+#else
 
-    do {
-      if (purge_length > 0) {
-        // "Wait for filament purge"
-        if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_PURGE);
-        TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_PURGE, PAUSE_MODE_SAME));
+    do
+    {
+        if (purge_length > 0)
+        {
+            // "Wait for filament purge"
+            if (show_lcd)
+                ui.pause_show_message(PAUSE_MESSAGE_PURGE);
+            TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_PURGE, PAUSE_MODE_SAME));
 
-        // Extrude filament to get into hotend
-        unscaled_e_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
-      }
-
-      TERN_(HOST_PROMPT_SUPPORT, filament_load_host_prompt()); // Initiate another host prompt.
-
-      #if M600_PURGE_MORE_RESUMABLE
-        if (show_lcd) {
-          // Show "Purge More" / "Resume" menu and wait for reply
-          KEEPALIVE_STATE(PAUSED_FOR_USER);
-          wait_for_user = false;
-          #if HAS_LCD_MENU
-            ui.pause_show_message(PAUSE_MESSAGE_OPTION); // Also sets PAUSE_RESPONSE_WAIT_FOR
-          #else
-            pause_menu_response = PAUSE_RESPONSE_WAIT_FOR;
-          #endif
-          TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_OPTION, PAUSE_MODE_SAME));
-          while (pause_menu_response == PAUSE_RESPONSE_WAIT_FOR) idle_no_sleep();
+            // Extrude filament to get into hotend
+            unscaled_e_move(purge_length, ADVANCED_PAUSE_PURGE_FEEDRATE);
         }
-      #endif
 
-      // Keep looping if "Purge More" was selected
-    } while (TERN0(M600_PURGE_MORE_RESUMABLE, show_lcd && pause_menu_response == PAUSE_RESPONSE_EXTRUDE_MORE));
+        TERN_(HOST_PROMPT_SUPPORT, filament_load_host_prompt()); // Initiate another host prompt.
 
-  #endif
-  TERN_(HOST_PROMPT_SUPPORT, host_action_prompt_end());
+#if M600_PURGE_MORE_RESUMABLE
+        if (show_lcd)
+        {
+            // Show "Purge More" / "Resume" menu and wait for reply
+            KEEPALIVE_STATE(PAUSED_FOR_USER);
+            wait_for_user = false;
+#if EITHER(HAS_LCD_MENU, DWIN_CREALITY_LCD_ENHANCED)
+            ui.pause_show_message(PAUSE_MESSAGE_OPTION); // Also sets PAUSE_RESPONSE_WAIT_FOR
+#else
+            pause_menu_response = PAUSE_RESPONSE_WAIT_FOR;
+#endif
+            TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_OPTION, PAUSE_MODE_SAME));
+            while (pause_menu_response == PAUSE_RESPONSE_WAIT_FOR)
+                idle_no_sleep();
+        }
+#endif
 
-  return true;
+        // Keep looping if "Purge More" was selected
+    } while (TERN0(M600_PURGE_MORE_RESUMABLE, pause_menu_response == PAUSE_RESPONSE_EXTRUDE_MORE));
+
+#endif
+    TERN_(HOST_PROMPT_SUPPORT, host_action_prompt_end());
+
+    return true;
 }
 
 /**
@@ -294,11 +340,12 @@ bool load_filament(const_float_t slow_load_length/*=0*/, const_float_t fast_load
  * as long as users don't spin the E motor ridiculously fast and
  * send current back to their board, potentially frying it.
  */
-inline void disable_active_extruder() {
-  #if HAS_E_STEPPER_ENABLE
-    disable_e_stepper(active_extruder);
+inline void disable_active_extruder()
+{
+#if HAS_EXTRUDERS
+    stepper.DISABLE_EXTRUDER(active_extruder);
     safe_delay(100);
-  #endif
+#endif
 }
 
 /**
@@ -311,58 +358,64 @@ inline void disable_active_extruder() {
  *
  * Returns 'true' if unload was completed, 'false' for abort
  */
-bool unload_filament(const_float_t unload_length, const bool show_lcd/*=false*/,
-                     const PauseMode mode/*=PAUSE_MODE_PAUSE_PRINT*/
-                     #if BOTH(FILAMENT_UNLOAD_ALL_EXTRUDERS, MIXING_EXTRUDER)
-                       , const_float_t mix_multiplier/*=1.0*/
-                     #endif
-) {
-  DEBUG_SECTION(uf, "unload_filament", true);
-  DEBUG_ECHOLNPAIR("... unloadlen:", unload_length, " showlcd:", show_lcd, " mode:", mode
-    #if BOTH(FILAMENT_UNLOAD_ALL_EXTRUDERS, MIXING_EXTRUDER)
-      , " mixmult:", mix_multiplier
-    #endif
-  );
+bool unload_filament(const_float_t unload_length, const bool show_lcd /*=false*/,
+                     const PauseMode mode /*=PAUSE_MODE_PAUSE_PRINT*/
+#if BOTH(FILAMENT_UNLOAD_ALL_EXTRUDERS, MIXING_EXTRUDER)
+                     ,
+                     const_float_t mix_multiplier /*=1.0*/
+#endif
+)
+{
+    DEBUG_SECTION(uf, "unload_filament", true);
+    DEBUG_ECHOLNPGM("... unloadlen:", unload_length, " showlcd:", show_lcd, " mode:", mode
+#if BOTH(FILAMENT_UNLOAD_ALL_EXTRUDERS, MIXING_EXTRUDER)
+                    ,
+                    " mixmult:", mix_multiplier
+#endif
+    );
 
-  #if !BOTH(FILAMENT_UNLOAD_ALL_EXTRUDERS, MIXING_EXTRUDER)
+#if !BOTH(FILAMENT_UNLOAD_ALL_EXTRUDERS, MIXING_EXTRUDER)
     constexpr float mix_multiplier = 1.0f;
-  #endif
+#endif
 
-  if (!ensure_safe_temperature(false, mode)) {
-    if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_STATUS);
-    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_STATUS, PAUSE_MODE_SAME));
-    return false;
-  }
+    if (!ensure_safe_temperature(false, mode))
+    {
+        if (show_lcd)
+            ui.pause_show_message(PAUSE_MESSAGE_STATUS);
+        TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_STATUS, PAUSE_MODE_SAME));
+        return false;
+    }
 
-  if (show_lcd) ui.pause_show_message(PAUSE_MESSAGE_UNLOAD, mode);
-  TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_UNLOAD, mode));
+    if (show_lcd)
+        ui.pause_show_message(PAUSE_MESSAGE_UNLOAD, mode);
+    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_UNLOAD, mode));
 
-  // Retract filament
-  unscaled_e_move(-(FILAMENT_UNLOAD_PURGE_RETRACT) * mix_multiplier, (PAUSE_PARK_RETRACT_FEEDRATE) * mix_multiplier);
+    // Retract filament
+    unscaled_e_move(-(FILAMENT_UNLOAD_PURGE_RETRACT)*mix_multiplier, (PAUSE_PARK_RETRACT_FEEDRATE)*mix_multiplier);
 
-  // Wait for filament to cool
-  safe_delay(FILAMENT_UNLOAD_PURGE_DELAY);
+    // Wait for filament to cool
+    safe_delay(FILAMENT_UNLOAD_PURGE_DELAY);
 
-  // Quickly purge
-  unscaled_e_move((FILAMENT_UNLOAD_PURGE_RETRACT + FILAMENT_UNLOAD_PURGE_LENGTH) * mix_multiplier,
-                  (FILAMENT_UNLOAD_PURGE_FEEDRATE) * mix_multiplier);
+    // Quickly purge
+    unscaled_e_move((FILAMENT_UNLOAD_PURGE_RETRACT + FILAMENT_UNLOAD_PURGE_LENGTH) * mix_multiplier,
+                    (FILAMENT_UNLOAD_PURGE_FEEDRATE)*mix_multiplier);
 
-  // Unload filament
-  #if FILAMENT_CHANGE_UNLOAD_ACCEL > 0
+// Unload filament
+#if FILAMENT_CHANGE_UNLOAD_ACCEL > 0
     const float saved_acceleration = planner.settings.retract_acceleration;
     planner.settings.retract_acceleration = FILAMENT_CHANGE_UNLOAD_ACCEL;
-  #endif
+#endif
 
-  unscaled_e_move(unload_length * mix_multiplier, (FILAMENT_CHANGE_UNLOAD_FEEDRATE) * mix_multiplier);
+    unscaled_e_move(unload_length * mix_multiplier, (FILAMENT_CHANGE_UNLOAD_FEEDRATE)*mix_multiplier);
 
-  #if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
+#if FILAMENT_CHANGE_FAST_LOAD_ACCEL > 0
     planner.settings.retract_acceleration = saved_acceleration;
-  #endif
+#endif
 
-  // Disable the Extruder for manual change
-  disable_active_extruder();
+    // Disable the Extruder for manual change
+    disable_active_extruder();
 
-  return true;
+    return true;
 }
 
 // public:
@@ -382,84 +435,90 @@ bool unload_filament(const_float_t unload_length, const bool show_lcd/*=false*/,
  */
 uint8_t did_pause_print = 0;
 
-bool pause_print(const_float_t retract, const xyz_pos_t &park_point, const bool show_lcd/*=false*/, const_float_t unload_length/*=0*/ DXC_ARGS) {
-  DEBUG_SECTION(pp, "pause_print", true);
-  DEBUG_ECHOLNPAIR("... park.x:", park_point.x, " y:", park_point.y, " z:", park_point.z, " unloadlen:", unload_length, " showlcd:", show_lcd DXC_SAY);
+bool pause_print(const_float_t retract, const xyz_pos_t &park_point, const bool show_lcd /*=false*/, const_float_t unload_length /*=0*/ DXC_ARGS)
+{
+    DEBUG_SECTION(pp, "pause_print", true);
+    DEBUG_ECHOLNPGM("... park.x:", park_point.x, " y:", park_point.y, " z:", park_point.z, " unloadlen:", unload_length, " showlcd:", show_lcd DXC_SAY);
 
-  UNUSED(show_lcd);
+    UNUSED(show_lcd);
 
-  if (did_pause_print) return false; // already paused
+    if (did_pause_print)
+        return false; // already paused
 
-  #if ENABLED(HOST_ACTION_COMMANDS)
-    #ifdef ACTION_ON_PAUSED
-      host_action_paused();
-    #elif defined(ACTION_ON_PAUSE)
-      host_action_pause();
-    #endif
-  #endif
+#if ENABLED(HOST_ACTION_COMMANDS)
+#ifdef ACTION_ON_PAUSED
+    host_action_paused();
+#elif defined(ACTION_ON_PAUSE)
+    host_action_pause();
+#endif
+#endif
 
-  TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_INFO, PSTR("Pause"), DISMISS_STR));
+    TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_INFO, PSTR("Pause"), DISMISS_STR));
 
-  // Indicate that the printer is paused
-  ++did_pause_print;
+    // Indicate that the printer is paused
+    ++did_pause_print;
 
-  // Pause the print job and timer
-  #if ENABLED(SDSUPPORT)
+// Pause the print job and timer
+#if ENABLED(SDSUPPORT)
     const bool was_sd_printing = IS_SD_PRINTING();
-    if (was_sd_printing) {
-      card.pauseSDPrint();
-      ++did_pause_print; // Indicate SD pause also
+    if (was_sd_printing)
+    {
+        card.pauseSDPrint();
+        ++did_pause_print; // Indicate SD pause also
     }
-  #endif
+#endif
 
-  print_job_timer.pause();
+    print_job_timer.pause();
 
-  // Save current position
-  resume_position = current_position;
+    // Save current position
+    resume_position = current_position;
 
-  // Will the nozzle be parking?
-  const bool do_park = !axes_should_home();
+    // Will the nozzle be parking?
+    const bool do_park = !axes_should_home();
 
-  #if ENABLED(POWER_LOSS_RECOVERY)
+#if ENABLED(POWER_LOSS_RECOVERY)
     // Save PLR info in case the power goes out while parked
     const float park_raise = do_park ? nozzle.park_mode_0_height(park_point.z) - current_position.z : POWER_LOSS_ZRAISE;
-    if (was_sd_printing && recovery.enabled) recovery.save(true, park_raise, do_park);
-  #endif
+    if (was_sd_printing && recovery.enabled)
+        recovery.save(true, park_raise, do_park);
+#endif
 
-  // Wait for buffered blocks to complete
-  planner.synchronize();
+    // Wait for buffered blocks to complete
+    planner.synchronize();
 
-  #if ENABLED(ADVANCED_PAUSE_FANS_PAUSE) && HAS_FAN
+#if ENABLED(ADVANCED_PAUSE_FANS_PAUSE) && HAS_FAN
     thermalManager.set_fans_paused(true);
-  #endif
+#endif
 
-  // Initial retract before move to filament change position
-  if (retract && thermalManager.hotEnoughToExtrude(active_extruder)) {
-    DEBUG_ECHOLNPAIR("... retract:", retract);
-    unscaled_e_move(retract, PAUSE_PARK_RETRACT_FEEDRATE);
-  }
+    // Initial retract before move to filament change position
+    if (retract && thermalManager.hotEnoughToExtrude(active_extruder))
+    {
+        DEBUG_ECHOLNPGM("... retract:", retract);
+        unscaled_e_move(retract, PAUSE_PARK_RETRACT_FEEDRATE);
+    }
 
-  // If axes don't need to home then the nozzle can park
-  if (do_park) nozzle.park(0, park_point); // Park the nozzle by doing a Minimum Z Raise followed by an XY Move
+    // If axes don't need to home then the nozzle can park
+    if (do_park)
+        nozzle.park(0, park_point); // Park the nozzle by doing a Minimum Z Raise followed by an XY Move
 
-  #if ENABLED(DUAL_X_CARRIAGE)
-    const int8_t saved_ext        = active_extruder;
+#if ENABLED(DUAL_X_CARRIAGE)
+    const int8_t saved_ext = active_extruder;
     const bool saved_ext_dup_mode = extruder_duplication_enabled;
     set_duplication_enabled(false, DXC_ext);
-  #endif
+#endif
 
-  // Unload the filament, if specified
-  if (unload_length)
-    unload_filament(unload_length, show_lcd, PAUSE_MODE_CHANGE_FILAMENT);
+    // Unload the filament, if specified
+    if (unload_length)
+        unload_filament(unload_length, show_lcd, PAUSE_MODE_CHANGE_FILAMENT);
 
-  #if ENABLED(DUAL_X_CARRIAGE)
+#if ENABLED(DUAL_X_CARRIAGE)
     set_duplication_enabled(saved_ext_dup_mode, saved_ext);
-  #endif
+#endif
 
-  // Disable the Extruder for manual change
-  disable_active_extruder();
+    // Disable the Extruder for manual change
+    disable_active_extruder();
 
-  return true;
+    return true;
 }
 
 /**
@@ -475,93 +534,106 @@ bool pause_print(const_float_t retract, const xyz_pos_t &park_point, const bool 
  * Used by M125 and M600
  */
 
-void show_continue_prompt(const bool is_reload) {
-  DEBUG_SECTION(scp, "pause_print", true);
-  DEBUG_ECHOLNPAIR("... is_reload:", is_reload);
+void show_continue_prompt(const bool is_reload)
+{
+    DEBUG_SECTION(scp, "pause_print", true);
+    DEBUG_ECHOLNPGM("... is_reload:", is_reload);
 
-  ui.pause_show_message(is_reload ? PAUSE_MESSAGE_INSERT : PAUSE_MESSAGE_WAITING);
-  TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(is_reload ? PAUSE_MESSAGE_INSERT : PAUSE_MESSAGE_WAITING, PAUSE_MODE_SAME));
+    ui.pause_show_message(is_reload ? PAUSE_MESSAGE_INSERT : PAUSE_MESSAGE_WAITING);
+    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(is_reload ? PAUSE_MESSAGE_INSERT : PAUSE_MESSAGE_WAITING, PAUSE_MODE_SAME));
 
-  SERIAL_ECHO_START();
-  SERIAL_ECHOPGM_P(is_reload ? PSTR(_PMSG(STR_FILAMENT_CHANGE_INSERT) "\n") : PSTR(_PMSG(STR_FILAMENT_CHANGE_WAIT) "\n"));
+    SERIAL_ECHO_START();
+    SERIAL_ECHOPGM_P(is_reload ? PSTR(_PMSG(STR_FILAMENT_CHANGE_INSERT) "\n") : PSTR(_PMSG(STR_FILAMENT_CHANGE_WAIT) "\n"));
 }
 
-void wait_for_confirmation(const bool is_reload/*=false*/, const int8_t max_beep_count/*=0*/ DXC_ARGS) {
-  DEBUG_SECTION(wfc, "wait_for_confirmation", true);
-  DEBUG_ECHOLNPAIR("... is_reload:", is_reload, " maxbeep:", max_beep_count DXC_SAY);
+void wait_for_confirmation(const bool is_reload /*=false*/, const int8_t max_beep_count /*=0*/ DXC_ARGS)
+{
+    DEBUG_SECTION(wfc, "wait_for_confirmation", true);
+    DEBUG_ECHOLNPGM("... is_reload:", is_reload, " maxbeep:", max_beep_count DXC_SAY);
 
-  bool nozzle_timed_out = false;
+    bool nozzle_timed_out = false;
 
-  show_continue_prompt(is_reload);
+    show_continue_prompt(is_reload);
 
-  first_impatient_beep(max_beep_count);
+    first_impatient_beep(max_beep_count);
 
-  // Start the heater idle timers
-  const millis_t nozzle_timeout = SEC_TO_MS(PAUSE_PARK_NOZZLE_TIMEOUT);
+    // Start the heater idle timers
+    const millis_t nozzle_timeout = SEC_TO_MS(PAUSE_PARK_NOZZLE_TIMEOUT);
 
-  HOTEND_LOOP() thermalManager.heater_idle[e].start(nozzle_timeout);
+    HOTEND_LOOP()
+    thermalManager.heater_idle[e].start(nozzle_timeout);
 
-  #if ENABLED(DUAL_X_CARRIAGE)
-    const int8_t saved_ext        = active_extruder;
+#if ENABLED(DUAL_X_CARRIAGE)
+    const int8_t saved_ext = active_extruder;
     const bool saved_ext_dup_mode = extruder_duplication_enabled;
     set_duplication_enabled(false, DXC_ext);
-  #endif
+#endif
 
-  // Wait for filament insert by user and press button
-  KEEPALIVE_STATE(PAUSED_FOR_USER);
-  TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, GET_TEXT(MSG_NOZZLE_PARKED), CONTINUE_STR));
-  //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_NOZZLE_PARKED)));
-  wait_for_user = true;    // LCD click or M108 will clear this
-  while (wait_for_user) {
-    impatient_beep(max_beep_count);
+    // Wait for filament insert by user and press button
+    KEEPALIVE_STATE(PAUSED_FOR_USER);
+    TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, GET_TEXT(MSG_NOZZLE_PARKED), CONTINUE_STR));
+    //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_NOZZLE_PARKED)));
+    wait_for_user = true; // LCD click or M108 will clear this
+    while (wait_for_user)
+    {
+        impatient_beep(max_beep_count);
 
-    // If the nozzle has timed out...
-    if (!nozzle_timed_out)
-      HOTEND_LOOP() nozzle_timed_out |= thermalManager.heater_idle[e].timed_out;
+        // If the nozzle has timed out...
+        if (!nozzle_timed_out)
+            HOTEND_LOOP()
+        nozzle_timed_out |= thermalManager.heater_idle[e].timed_out;
 
-    // Wait for the user to press the button to re-heat the nozzle, then
-    // re-heat the nozzle, re-show the continue prompt, restart idle timers, start over
-    if (nozzle_timed_out) {
-      ui.pause_show_message(PAUSE_MESSAGE_HEAT);
-      TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_HEAT, PAUSE_MODE_SAME));
+        // Wait for the user to press the button to re-heat the nozzle, then
+        // re-heat the nozzle, re-show the continue prompt, restart idle timers, start over
+        if (nozzle_timed_out)
+        {
+            ui.pause_show_message(PAUSE_MESSAGE_HEAT);
+            TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_HEAT, PAUSE_MODE_SAME));
 
-      SERIAL_ECHO_MSG(_PMSG(STR_FILAMENT_CHANGE_HEAT));
+            SERIAL_ECHO_MSG(_PMSG(STR_FILAMENT_CHANGE_HEAT));
 
-      TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, GET_TEXT(MSG_HEATER_TIMEOUT), GET_TEXT(MSG_REHEAT)));
+            TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, GET_TEXT(MSG_HEATER_TIMEOUT), GET_TEXT(MSG_REHEAT)));
 
-      //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_HEATER_TIMEOUT)));
+            //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_HEATER_TIMEOUT)));
 
-      wait_for_user_response(0, true); // Wait for LCD click or M108
+            TERN_(HAS_RESUME_CONTINUE, wait_for_user_response(0, true)); // Wait for LCD click or M108
 
-      TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_INFO, GET_TEXT(MSG_REHEATING)));
+            TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_INFO, GET_TEXT(MSG_REHEATING)));
 
-      TERN_(EXTENSIBLE_UI, ExtUI::onStatusChanged_P(GET_TEXT(MSG_REHEATING)));
+            TERN_(EXTENSIBLE_UI, ExtUI::onStatusChanged_P(GET_TEXT(MSG_REHEATING)));
 
-      // Re-enable the heaters if they timed out
-      HOTEND_LOOP() thermalManager.reset_hotend_idle_timer(e);
+            TERN_(DWIN_CREALITY_LCD_ENHANCED, ui.set_status_P(GET_TEXT(MSG_REHEATING)));
 
-      // Wait for the heaters to reach the target temperatures
-      ensure_safe_temperature(false);
+            // Re-enable the heaters if they timed out
+            HOTEND_LOOP()
+            thermalManager.reset_hotend_idle_timer(e);
 
-      // Show the prompt to continue
-      show_continue_prompt(is_reload);
+            // Wait for the heaters to reach the target temperatures
+            ensure_safe_temperature(false);
 
-      // Start the heater idle timers
-      const millis_t nozzle_timeout = SEC_TO_MS(PAUSE_PARK_NOZZLE_TIMEOUT);
+            // Show the prompt to continue
+            show_continue_prompt(is_reload);
 
-      HOTEND_LOOP() thermalManager.heater_idle[e].start(nozzle_timeout);
-      TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, PSTR("Reheat Done"), CONTINUE_STR));
-      //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(PSTR("Reheat finished.")));
-      wait_for_user = true;
-      nozzle_timed_out = false;
+            // Start the heater idle timers
+            const millis_t nozzle_timeout = SEC_TO_MS(PAUSE_PARK_NOZZLE_TIMEOUT);
 
-      first_impatient_beep(max_beep_count);
+            HOTEND_LOOP()
+            thermalManager.heater_idle[e].start(nozzle_timeout);
+
+            TERN_(HOST_PROMPT_SUPPORT, host_prompt_do(PROMPT_USER_CONTINUE, GET_TEXT(MSG_REHEATDONE), CONTINUE_STR));
+            //TERN_(EXTENSIBLE_UI, ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_REHEATDONE)));
+            TERN_(DWIN_CREALITY_LCD_ENHANCED, ui.set_status_P(GET_TEXT(MSG_REHEATDONE)));
+
+            IF_DISABLED(PAUSE_REHEAT_FAST_RESUME, wait_for_user = true);
+
+            nozzle_timed_out = false;
+            first_impatient_beep(max_beep_count);
+        }
+        idle_no_sleep();
     }
-    idle_no_sleep();
-  }
-  #if ENABLED(DUAL_X_CARRIAGE)
+#if ENABLED(DUAL_X_CARRIAGE)
     set_duplication_enabled(saved_ext_dup_mode, saved_ext);
-  #endif
+#endif
 }
 
 /**
@@ -584,12 +656,13 @@ void wait_for_confirmation(const bool is_reload/*=false*/, const int8_t max_beep
  * - Send host action for resume, if configured
  * - Resume the current SD print job, if any
  */
-void resume_print(const_float_t slow_load_length/*=0*/, const_float_t fast_load_length/*=0*/, const_float_t purge_length/*=ADVANCED_PAUSE_PURGE_LENGTH*/, const int8_t max_beep_count/*=0*/, const celsius_t targetTemp/*=0*/ DXC_ARGS) {
-  DEBUG_SECTION(rp, "resume_print", true);
-  DEBUG_ECHOLNPAIR("... slowlen:", slow_load_length, " fastlen:", fast_load_length, " purgelen:", purge_length, " maxbeep:", max_beep_count, " targetTemp:", targetTemp DXC_SAY);
+void resume_print(const_float_t slow_load_length /*=0*/, const_float_t fast_load_length /*=0*/, const_float_t purge_length /*=ADVANCED_PAUSE_PURGE_LENGTH*/, const int8_t max_beep_count /*=0*/, const celsius_t targetTemp /*=0*/ DXC_ARGS)
+{
+    DEBUG_SECTION(rp, "resume_print", true);
+    DEBUG_ECHOLNPGM("... slowlen:", slow_load_length, " fastlen:", fast_load_length, " purgelen:", purge_length, " maxbeep:", max_beep_count, " targetTemp:", targetTemp DXC_SAY);
 
-  /*
-  SERIAL_ECHOLNPAIR(
+    /*
+  SERIAL_ECHOLNPGM(
     "start of resume_print()\ndual_x_carriage_mode:", dual_x_carriage_mode,
     "\nextruder_duplication_enabled:", extruder_duplication_enabled,
     "\nactive_extruder:", active_extruder,
@@ -597,98 +670,106 @@ void resume_print(const_float_t slow_load_length/*=0*/, const_float_t fast_load_
   );
   //*/
 
-  if (!did_pause_print) return;
+    if (!did_pause_print)
+        return;
 
-  // Re-enable the heaters if they timed out
-  bool nozzle_timed_out = false;
-  HOTEND_LOOP() {
-    nozzle_timed_out |= thermalManager.heater_idle[e].timed_out;
-    thermalManager.reset_hotend_idle_timer(e);
-  }
+    // Re-enable the heaters if they timed out
+    bool nozzle_timed_out = false;
+    HOTEND_LOOP()
+    {
+        nozzle_timed_out |= thermalManager.heater_idle[e].timed_out;
+        thermalManager.reset_hotend_idle_timer(e);
+    }
 
-  if (targetTemp > thermalManager.degTargetHotend(active_extruder))
-    thermalManager.setTargetHotend(targetTemp, active_extruder);
+    if (targetTemp > thermalManager.degTargetHotend(active_extruder))
+        thermalManager.setTargetHotend(targetTemp, active_extruder);
 
-  // Load the new filament
-  load_filament(slow_load_length, fast_load_length, purge_length, max_beep_count, true, nozzle_timed_out, PAUSE_MODE_SAME DXC_PASS);
+    // Load the new filament
+    load_filament(slow_load_length, fast_load_length, purge_length, max_beep_count, true, nozzle_timed_out, PAUSE_MODE_SAME DXC_PASS);
 
-  if (targetTemp > 0) {
-    thermalManager.setTargetHotend(targetTemp, active_extruder);
-    thermalManager.wait_for_hotend(active_extruder, false);
-  }
+    if (targetTemp > 0)
+    {
+        thermalManager.setTargetHotend(targetTemp, active_extruder);
+        thermalManager.wait_for_hotend(active_extruder, false);
+    }
 
-  ui.pause_show_message(PAUSE_MESSAGE_RESUME);
-  TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_RESUME, PAUSE_MODE_SAME));
+    ui.pause_show_message(PAUSE_MESSAGE_RESUME);
+    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_RESUME, PAUSE_MODE_SAME));
 
-  // Check Temperature before moving hotend
-  ensure_safe_temperature();
+    // Check Temperature before moving hotend
+    ensure_safe_temperature(DISABLED(BELTPRINTER));
 
-  // Retract to prevent oozing
-  unscaled_e_move(-(PAUSE_PARK_RETRACT_LENGTH), feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
+    // Retract to prevent oozing
+    unscaled_e_move(-(PAUSE_PARK_RETRACT_LENGTH), feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
 
-  if (!axes_should_home()) {
-    // Move XY back to saved position
-    destination.set(resume_position.x, resume_position.y, current_position.z, current_position.e);
-    prepare_internal_move_to_destination(NOZZLE_PARK_XY_FEEDRATE);
+    if (!axes_should_home())
+    {
+        // Move XY back to saved position
+        destination.set(resume_position.x, resume_position.y, current_position.z, current_position.e);
+        prepare_internal_move_to_destination(NOZZLE_PARK_XY_FEEDRATE);
 
-    // Move Z back to saved position
-    destination.z = resume_position.z;
-    prepare_internal_move_to_destination(NOZZLE_PARK_Z_FEEDRATE);
-  }
+        // Move Z back to saved position
+        destination.z = resume_position.z;
+        prepare_internal_move_to_destination(NOZZLE_PARK_Z_FEEDRATE);
+    }
 
-  // Unretract
-  unscaled_e_move(PAUSE_PARK_RETRACT_LENGTH, feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
+    // Unretract
+    unscaled_e_move(PAUSE_PARK_RETRACT_LENGTH, feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
 
-  // Intelligent resuming
-  #if ENABLED(FWRETRACT)
+// Intelligent resuming
+#if ENABLED(FWRETRACT)
     // If retracted before goto pause
     if (fwretract.retracted[active_extruder])
-      unscaled_e_move(-fwretract.settings.retract_length, fwretract.settings.retract_feedrate_mm_s);
-  #endif
+        unscaled_e_move(-fwretract.settings.retract_length, fwretract.settings.retract_feedrate_mm_s);
+#endif
 
-  // If resume_position is negative
-  if (resume_position.e < 0) unscaled_e_move(resume_position.e, feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
-  #if ADVANCED_PAUSE_RESUME_PRIME != 0
+    // If resume_position is negative
+    if (resume_position.e < 0)
+        unscaled_e_move(resume_position.e, feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
+#if ADVANCED_PAUSE_RESUME_PRIME != 0
     unscaled_e_move(ADVANCED_PAUSE_RESUME_PRIME, feedRate_t(ADVANCED_PAUSE_PURGE_FEEDRATE));
-  #endif
+#endif
 
-  // Now all extrusion positions are resumed and ready to be confirmed
-  // Set extruder to saved position
-  planner.set_e_position_mm((destination.e = current_position.e = resume_position.e));
+    // Now all extrusion positions are resumed and ready to be confirmed
+    // Set extruder to saved position
+    planner.set_e_position_mm((destination.e = current_position.e = resume_position.e));
 
-  ui.pause_show_message(PAUSE_MESSAGE_STATUS);
-  TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_STATUS, PAUSE_MODE_SAME));
+    ui.pause_show_message(PAUSE_MESSAGE_STATUS);
+    TERN_(EXTENSIBLE_UI, ExtUI::onPauseMessage(PAUSE_MESSAGE_STATUS, PAUSE_MODE_SAME));
 
-  #ifdef ACTION_ON_RESUMED
+#ifdef ACTION_ON_RESUMED
     host_action_resumed();
-  #elif defined(ACTION_ON_RESUME)
+#elif defined(ACTION_ON_RESUME)
     host_action_resume();
-  #endif
+#endif
 
-  --did_pause_print;
+    --did_pause_print;
 
-  TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_INFO, PSTR("Resuming"), DISMISS_STR));
+    TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_INFO, PSTR("Resuming"), DISMISS_STR));
 
-  // Resume the print job timer if it was running
-  if (print_job_timer.isPaused()) print_job_timer.start();
+    // Resume the print job timer if it was running
+    if (print_job_timer.isPaused())
+        print_job_timer.start();
 
-  #if ENABLED(SDSUPPORT)
-    if (did_pause_print) {
-      --did_pause_print;
-      card.startOrResumeFilePrinting();
-      // Write PLR now to update the z axis value
-      TERN_(POWER_LOSS_RECOVERY, if (recovery.enabled) recovery.save(true));
+#if ENABLED(SDSUPPORT)
+    if (did_pause_print)
+    {
+        --did_pause_print;
+        card.startOrResumeFilePrinting();
+        // Write PLR now to update the z axis value
+        TERN_(POWER_LOSS_RECOVERY, if (recovery.enabled) recovery.save(true));
     }
-  #endif
+#endif
 
-  #if ENABLED(ADVANCED_PAUSE_FANS_PAUSE) && HAS_FAN
+#if ENABLED(ADVANCED_PAUSE_FANS_PAUSE) && HAS_FAN
     thermalManager.set_fans_paused(false);
-  #endif
+#endif
 
-  TERN_(HAS_FILAMENT_SENSOR, runout.reset());
+    TERN_(HAS_FILAMENT_SENSOR, runout.reset());
 
-  TERN_(HAS_STATUS_MESSAGE, ui.reset_status());
-  TERN_(HAS_LCD_MENU, ui.return_to_status());
+    TERN_(HAS_STATUS_MESSAGE, ui.reset_status());
+    TERN_(HAS_LCD_MENU, ui.return_to_status());
+    TERN_(DWIN_CREALITY_LCD_ENHANCED, HMI_ReturnScreen());
 }
 
 #endif // ADVANCED_PAUSE_FEATURE

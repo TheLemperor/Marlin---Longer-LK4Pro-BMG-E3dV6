@@ -1,6 +1,6 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2021 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
  * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,29 +31,30 @@
 #include "../../ui_api.h"
 
 #define SETUP_HELPER(SCREEN, SETUP) \
-  { .screen = SCREEN, \
-  .setup_fn = SETUP }
+    {                               \
+        .screen = SCREEN,           \
+        .setup_fn = SETUP           \
+    }
 
 const struct DGUS_ScreenSetup screen_setup_list[] PROGMEM = {
-  #if ENABLED(SDSUPPORT)
-    SETUP_HELPER(DGUS_Screen::PRINT,            &DGUSSetupHandler::Print),
-  #endif
-  SETUP_HELPER(DGUS_Screen::PRINT_STATUS,       &DGUSSetupHandler::PrintStatus),
-  SETUP_HELPER(DGUS_Screen::PRINT_ADJUST,       &DGUSSetupHandler::PrintAdjust),
-  SETUP_HELPER(DGUS_Screen::LEVELING_MANUAL,    &DGUSSetupHandler::LevelingManual),
-#if HAS_LEVELING
-  SETUP_HELPER(DGUS_Screen::LEVELING_MENU,      &DGUSSetupHandler::LevelingMenu),
-  SETUP_HELPER(DGUS_Screen::LEVELING_OFFSET,    &DGUSSetupHandler::LevelingOffset),
-  SETUP_HELPER(DGUS_Screen::LEVELING_AUTOMATIC, &DGUSSetupHandler::LevelingAutomatic),
-  SETUP_HELPER(DGUS_Screen::LEVELING_PROBING,   &DGUSSetupHandler::LevelingProbing),
+#if ENABLED(SDSUPPORT)
+    SETUP_HELPER(DGUS_Screen::PRINT, &DGUSSetupHandler::Print),
 #endif
-  SETUP_HELPER(DGUS_Screen::FILAMENT,           &DGUSSetupHandler::Filament),
-  SETUP_HELPER(DGUS_Screen::MOVE,               &DGUSSetupHandler::Move),
-  SETUP_HELPER(DGUS_Screen::GCODE,              &DGUSSetupHandler::Gcode),
-  SETUP_HELPER(DGUS_Screen::PID,                &DGUSSetupHandler::PID),
-  SETUP_HELPER(DGUS_Screen::INFOS,              &DGUSSetupHandler::Infos),
+    SETUP_HELPER(DGUS_Screen::PRINT_STATUS, &DGUSSetupHandler::PrintStatus),
+    SETUP_HELPER(DGUS_Screen::PRINT_ADJUST, &DGUSSetupHandler::PrintAdjust),
+    SETUP_HELPER(DGUS_Screen::LEVELING_MANUAL, &DGUSSetupHandler::LevelingManual),
+#if HAS_LEVELING
+    SETUP_HELPER(DGUS_Screen::LEVELING_MENU, &DGUSSetupHandler::LevelingMenu),
+    SETUP_HELPER(DGUS_Screen::LEVELING_OFFSET, &DGUSSetupHandler::LevelingOffset),
+    SETUP_HELPER(DGUS_Screen::LEVELING_AUTOMATIC, &DGUSSetupHandler::LevelingAutomatic),
+    SETUP_HELPER(DGUS_Screen::LEVELING_PROBING, &DGUSSetupHandler::LevelingProbing),
+#endif
+    SETUP_HELPER(DGUS_Screen::FILAMENT, &DGUSSetupHandler::Filament),
+    SETUP_HELPER(DGUS_Screen::MOVE, &DGUSSetupHandler::Move),
+    SETUP_HELPER(DGUS_Screen::GCODE, &DGUSSetupHandler::Gcode),
+    SETUP_HELPER(DGUS_Screen::PID, &DGUSSetupHandler::PID),
+    SETUP_HELPER(DGUS_Screen::INFOS, &DGUSSetupHandler::Infos),
 
-  SETUP_HELPER((DGUS_Screen)0, nullptr)
-};
+    SETUP_HELPER((DGUS_Screen)0, nullptr)};
 
 #endif // DGUS_LCD_UI_RELOADED

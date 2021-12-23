@@ -1,6 +1,6 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2021 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
  * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,45 +40,47 @@ const char DGUS_MACHINENAME[] PROGMEM = MACHINE_NAME;
 const char DGUS_MARLINVERSION[] PROGMEM = SHORT_BUILD_VERSION "-" LKPro_VERSION;
 
 #define VP_HELPER(ADDR, SIZE, FLAGS, EXTRA, RXHANDLER, TXHANDLER) \
-  { .addr = ADDR, \
-  .size = SIZE, \
-  .flags = FLAGS, \
-  .extra = EXTRA, \
-  .rx_handler = RXHANDLER, \
-  .tx_handler = TXHANDLER }
+    {                                                             \
+        .addr = ADDR,                                             \
+        .size = SIZE,                                             \
+        .flags = FLAGS,                                           \
+        .extra = EXTRA,                                           \
+        .rx_handler = RXHANDLER,                                  \
+        .tx_handler = TXHANDLER                                   \
+    }
 
 #define VP_HELPER_WORD(ADDR, FLAGS, EXTRA, RXHANDLER, TXHANDLER) \
-  VP_HELPER(ADDR, 2, FLAGS, EXTRA, RXHANDLER, TXHANDLER)
+    VP_HELPER(ADDR, 2, FLAGS, EXTRA, RXHANDLER, TXHANDLER)
 
 #define VP_HELPER_DWORD(ADDR, FLAGS, EXTRA, RXHANDLER, TXHANDLER) \
-  VP_HELPER(ADDR, 4, FLAGS, EXTRA, RXHANDLER, TXHANDLER)
+    VP_HELPER(ADDR, 4, FLAGS, EXTRA, RXHANDLER, TXHANDLER)
 
 #define VP_HELPER_RX(ADDR, RXHANDLER) \
-  VP_HELPER_WORD(ADDR, VPFLAG_NONE, nullptr, RXHANDLER, nullptr)
+    VP_HELPER_WORD(ADDR, VPFLAG_NONE, nullptr, RXHANDLER, nullptr)
 
 #define VP_HELPER_RX_NODATA(ADDR, RXHANDLER) \
-  VP_HELPER(ADDR, 0, VPFLAG_NONE, nullptr, RXHANDLER, nullptr)
+    VP_HELPER(ADDR, 0, VPFLAG_NONE, nullptr, RXHANDLER, nullptr)
 
 #define VP_HELPER_TX(ADDR, TXHANDLER) \
-  VP_HELPER_WORD(ADDR, VPFLAG_NONE, nullptr, nullptr, TXHANDLER)
+    VP_HELPER_WORD(ADDR, VPFLAG_NONE, nullptr, nullptr, TXHANDLER)
 
 #define VP_HELPER_TX_SIZE(ADDR, SIZE, TXHANDLER) \
-  VP_HELPER(ADDR, SIZE, VPFLAG_NONE, nullptr, nullptr, TXHANDLER)
+    VP_HELPER(ADDR, SIZE, VPFLAG_NONE, nullptr, nullptr, TXHANDLER)
 
 #define VP_HELPER_TX_EXTRA(ADDR, EXTRA, TXHANDLER) \
-  VP_HELPER_WORD(ADDR, VPFLAG_NONE, EXTRA, nullptr, TXHANDLER)
+    VP_HELPER_WORD(ADDR, VPFLAG_NONE, EXTRA, nullptr, TXHANDLER)
 
 #define VP_HELPER_TX_AUTO(ADDR, EXTRA, TXHANDLER) \
-  VP_HELPER_WORD(ADDR, VPFLAG_AUTOUPLOAD, EXTRA, nullptr, TXHANDLER)
+    VP_HELPER_WORD(ADDR, VPFLAG_AUTOUPLOAD, EXTRA, nullptr, TXHANDLER)
 
 #define RX(HANDLER) &DGUSRxHandler::HANDLER
 #define TX(HANDLER) &DGUSTxHandler::HANDLER
 
 #define VP_HELPER_TX_RX(ADDR, HANDLER) \
-  VP_HELPER_WORD(ADDR, VPFLAG_NONE, nullptr, RX(HANDLER), TX(HANDLER))
+    VP_HELPER_WORD(ADDR, VPFLAG_NONE, nullptr, RX(HANDLER), TX(HANDLER))
 
 #define VP_HELPER_TX_RX_SIZE(ADDR, SIZE, HANDLER) \
-  VP_HELPER(ADDR, SIZE, VPFLAG_NONE, nullptr, RX(HANDLER), TX(HANDLER))
+    VP_HELPER(ADDR, SIZE, VPFLAG_NONE, nullptr, RX(HANDLER), TX(HANDLER))
 
 const struct DGUS_VP vp_list[] PROGMEM = {
 
@@ -200,7 +202,7 @@ const struct DGUS_VP vp_list[] PROGMEM = {
     VP_HELPER_TX_AUTO(DGUS_Addr::STATUS_Percent,
                       nullptr,
                       &DGUSTxHandler::Percent),
- //   VP_HELPER_TX(DGUS_Addr::STATUS_Icons, &DGUSTxHandler::StatusIcons),
+    //   VP_HELPER_TX(DGUS_Addr::STATUS_Icons, &DGUSTxHandler::StatusIcons),
 
     VP_HELPER_TX_AUTO(DGUS_Addr::ADJUST_Feedrate,
                       &feedrate_percentage,
@@ -241,9 +243,9 @@ const struct DGUS_VP vp_list[] PROGMEM = {
     VP_HELPER_TX(DGUS_Addr::TEMP_Max_H1, &DGUSTxHandler::TempMax),
 #endif
 
-    // VP_HELPER_TX_AUTO(DGUS_Addr::STEPPER_Status,
-    //                   nullptr,
-    //                   &DGUSTxHandler::StepperStatus),
+// VP_HELPER_TX_AUTO(DGUS_Addr::STEPPER_Status,
+//                   nullptr,
+//                   &DGUSTxHandler::StepperStatus),
 
 #if HAS_LEVELING
     VP_HELPER_TX_AUTO(DGUS_Addr::LEVEL_OFFSET_Current,
@@ -253,7 +255,7 @@ const struct DGUS_VP vp_list[] PROGMEM = {
                        &DGUSScreenHandler::offset_steps,
                        &DGUSTxHandler::StepIcons),
 
-    VP_HELPER(DGUS_Addr::LEVEL_AUTO_Grid, sizeof(int16_t)*DGUS_LEVEL_GRID_SIZE, VPFLAG_NONE, nullptr, nullptr, &DGUSTxHandler::ABLGrid),
+    VP_HELPER(DGUS_Addr::LEVEL_AUTO_Grid, sizeof(int16_t) * DGUS_LEVEL_GRID_SIZE, VPFLAG_NONE, nullptr, nullptr, &DGUSTxHandler::ABLGrid),
     VP_HELPER(DGUS_Addr::SP_LEVEL_AUTO_Grid, 2, VPFLAG_NONE, nullptr, nullptr, &DGUSTxHandler::ABLGridColor),
 #endif
 
@@ -278,7 +280,7 @@ const struct DGUS_VP vp_list[] PROGMEM = {
                        &DGUSScreenHandler::move_steps,
                        &DGUSTxHandler::StepIcons),
 
- //   VP_HELPER_TX(DGUS_Addr::SETTINGS2_BLTouch, &DGUSTxHandler::BLTouch),
+    //   VP_HELPER_TX(DGUS_Addr::SETTINGS2_BLTouch, &DGUSTxHandler::BLTouch),
 
     VP_HELPER_TX(DGUS_Addr::PID_HeaterIcons, &DGUSTxHandler::PIDIcons),
     VP_HELPER_TX_EXTRA(DGUS_Addr::PID_Temp,
@@ -331,7 +333,6 @@ const struct DGUS_VP vp_list[] PROGMEM = {
     VP_HELPER_TX_AUTO(DGUS_Addr::FAN0_Speed_CUR, nullptr, &DGUSTxHandler::FanSpeed),
     VP_HELPER_TX_AUTO(DGUS_Addr::STATUS_Feedrate_MMS, nullptr, &DGUSTxHandler::FeedrateMMS),
     VP_HELPER_TX_AUTO(DGUS_Addr::STATUS_Pause_Resume_Icon, nullptr, &DGUSTxHandler::StatusIcons),
-
 
     // READ-WRITE VARIABLES
 

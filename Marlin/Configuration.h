@@ -35,7 +35,7 @@
  *
  * Advanced settings can be found in Configuration_adv.h
  */
-#define CONFIGURATION_H_VERSION 02000902
+#define CONFIGURATION_H_VERSION 02000903
 
 //===========================================================================
 //============================= Getting Started =============================
@@ -95,12 +95,18 @@
 // @section machine
 #define LGT_MAC //  For Alphawise and Longer U30 pro LK4 pro
 #define LK4_Pro //  for LK4pro
-#define LK4_Pro_BLTOUCH
+//#define LK5_Pro //  for LK5pro
+#define LKPro_BLTOUCH // for LK4 and LK5
 
-#define LKPro_VERSION "G1RC4"
+#define LKPro_FW_VERSION "G5"
 #define LCD_HEIGHT 4 // number of message lines in the wait screen
 //#define DEBUG_DGUSLCD
 //#define FILAMENT_RUNOUT_SENSOR_DEBUG
+
+// Choose the name from boards.h that matches your setup
+#ifndef MOTHERBOARD
+  #define MOTHERBOARD BOARD_LONGER3D_LKx_PRO //  For Alphawise and Longer U30 pro LK4 pro with LGT motherboard
+#endif
 
 /**
  * Select the serial port on the board to use for communication with the host.
@@ -145,11 +151,6 @@
 
 // Enable the Bluetooth serial interface on AT90USB devices
 //#define BLUETOOTH
-
-// Choose the name from boards.h that matches your setup
-#ifndef MOTHERBOARD
-#define MOTHERBOARD BOARD_LONGER3D_LKx_PRO //  For Alphawise and Longer U30 pro LK4 pro with LGT motherboard
-#endif
 
 // Name displayed in the LCD "Ready" message and Info menu
 #define CUSTOM_MACHINE_NAME "LK4 Pro"
@@ -798,6 +799,7 @@
 //#define COREZX
 //#define COREZY
 //#define MARKFORGED_XY  // MarkForged. See https://reprap.org/forum/read.php?152,504042
+//#define MARKFORGED_YX
 
 // Enable for a belt style printer with endless "Z" motion
 //#define BELTPRINTER
@@ -872,10 +874,10 @@
 // Mechanical endstop with COM to ground and NC to Signal uses "false" here (most common setup).
 #define X_MIN_ENDSTOP_INVERTING true //  For Alphawise and Longer U30 pro LK4 pro
 #define Y_MIN_ENDSTOP_INVERTING true //  For Alphawise and Longer U30 pro LK4 pro
-#if ENABLED(LK4_Pro_BLTOUCH)
-#define Z_MIN_ENDSTOP_INVERTING false //  For Alphawise and Longer U30 pro LK4 proo
+#if ENABLED(LKPro_BLTOUCH)
+  #define Z_MIN_ENDSTOP_INVERTING false //  For Alphawise and Longer U30 pro LK4 proo
 #else
-#define Z_MIN_ENDSTOP_INVERTING true //  For Alphawise and Longer U30 pro LK4 proo
+  #define Z_MIN_ENDSTOP_INVERTING true //  For Alphawise and Longer U30 pro LK4 proo
 #endif
 #define I_MIN_ENDSTOP_INVERTING false       // Set to true to invert the logic of the endstop.
 #define J_MIN_ENDSTOP_INVERTING false       // Set to true to invert the logic of the endstop.
@@ -1134,9 +1136,9 @@
  *   (e.g., an inductive probe or a nozzle-based probe-switch.)
  */
 #if ENABLED(LK1_Pro_AutoBed)
-#define FIX_MOUNTED_PROBE
+  #define FIX_MOUNTED_PROBE
 #else
-//#define FIX_MOUNTED_PROBE
+  //#define FIX_MOUNTED_PROBE
 #endif
 
 /**
@@ -1154,10 +1156,10 @@
 /**
  * The BLTouch probe uses a Hall effect sensor and emulates a servo.
  */
-#ifdef LK4_Pro_BLTOUCH
-#define BLTOUCH
+#ifdef LKPro_BLTOUCH
+  #define BLTOUCH
 #else
-//#define BLTOUCH
+  //#define BLTOUCH
 #endif
 
 /**
@@ -1297,6 +1299,15 @@
 #endif
 
 /**
+ * Probe Enable / Disable
+ * The probe only provides a triggered signal when enabled.
+ */
+//#define PROBE_ENABLE_DISABLE
+#if ENABLED(PROBE_ENABLE_DISABLE)
+  //#define PROBE_ENABLE_PIN -1   // Override the default pin here
+#endif
+
+/**
  * Multiple Probing
  *
  * You may get improved results by probing 2 or more times.
@@ -1305,12 +1316,12 @@
  * A total of 2 does fast/slow probes with a weighted average.
  * A total of 3 or more adds more slow probes, taking the average.
  */
-#ifdef LK4_Pro_BLTOUCH // Set to your liking
-#define MULTIPLE_PROBING 2
-#define EXTRA_PROBING 1
+#ifdef LKPro_BLTOUCH // Set to your liking
+  #define MULTIPLE_PROBING 2
+  #define EXTRA_PROBING 1
 #else
-//#define MULTIPLE_PROBING 2
-//#define EXTRA_PROBING    1
+  //#define MULTIPLE_PROBING 2
+  //#define EXTRA_PROBING    1
 #endif
 
 /**
@@ -1339,10 +1350,10 @@
 #define Z_PROBE_OFFSET_RANGE_MAX 20
 
 // Enable the M48 repeatability test to test probe accuracy
-#ifdef LK4_Pro_BLTOUCH
-#define Z_MIN_PROBE_REPEATABILITY_TEST
+#ifdef LKPro_BLTOUCH
+  #define Z_MIN_PROBE_REPEATABILITY_TEST
 #else
-//#define Z_MIN_PROBE_REPEATABILITY_TEST
+  //#define Z_MIN_PROBE_REPEATABILITY_TEST
 #endif
 
 // Before deploy/stow pause for user confirmation
@@ -1459,12 +1470,11 @@
 
 // The size of the print bed
 #if defined(LK1_Pro) || defined(LK5_Pro)
-#define X_BED_SIZE 300 // for LK1 pro
-#define Y_BED_SIZE 300 // for LK1 pro
-
+  #define X_BED_SIZE 300 // for LK1 pro
+  #define Y_BED_SIZE 300 // for LK1 pro
 #else                  // LK4 Pro
-#define X_BED_SIZE 220 //  For Alphawise and Longer U30 pro LK4 pro
-#define Y_BED_SIZE 220 //  For Alphawise and Longer U30 pro LK4 pro
+  #define X_BED_SIZE 220 //  For Alphawise and Longer U30 pro LK4 pro
+  #define Y_BED_SIZE 220 //  For Alphawise and Longer U30 pro LK4 pro
 #endif
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
@@ -1475,9 +1485,9 @@
 #define Y_MAX_POS Y_BED_SIZE
 
 #if defined(LK1_Pro) || defined(LK5_Pro)
-#define Z_MAX_POS 400 // for LK1 pro
+  #define Z_MAX_POS 400 // for LK1 pro
 #else                 // LK4 Pro
-#define Z_MAX_POS 250 //  For Alphawise and Longer U30 pro LK4 pro
+  #define Z_MAX_POS 250 //  For Alphawise and Longer U30 pro LK4 pro
 #endif
 //#define I_MIN_POS 0
 //#define I_MAX_POS 50
@@ -1635,10 +1645,10 @@
  */
 //#define AUTO_BED_LEVELING_3POINT
 //#define AUTO_BED_LEVELING_LINEAR
-#if ENABLED(LK1_Pro_AutoBed) || ENABLED(LK4_Pro_BLTOUCH)
-#define AUTO_BED_LEVELING_BILINEAR
+#if ENABLED(LK1_Pro_AutoBed) || ENABLED(LKPro_BLTOUCH)
+  #define AUTO_BED_LEVELING_BILINEAR
 #else
-//#define AUTO_BED_LEVELING_BILINEAR
+  //#define AUTO_BED_LEVELING_BILINEAR
 #endif
 //#define AUTO_BED_LEVELING_UBL
 //#define MESH_BED_LEVELING
@@ -1648,11 +1658,11 @@
  * these options to restore the prior leveling state or to always enable
  * leveling immediately after G28.
  */
-#ifdef LK4_Pro_BLTOUCH
-#define ENABLE_LEVELING_AFTER_G28
+#ifdef LKPro_BLTOUCH
+  #define ENABLE_LEVELING_AFTER_G28
 #else
-//#define RESTORE_LEVELING_AFTER_G28
-//#define ENABLE_LEVELING_AFTER_G28
+  //#define RESTORE_LEVELING_AFTER_G28
+  //#define ENABLE_LEVELING_AFTER_G28
 #endif
 
 /**
@@ -1710,10 +1720,10 @@
 #if EITHER(AUTO_BED_LEVELING_LINEAR, AUTO_BED_LEVELING_BILINEAR)
 
 // Set the number of grid points per dimension.
-#if ENABLED(LK1_Pro_AutoBed) || ENABLED(LK4_Pro_BLTOUCH)
-#define GRID_MAX_POINTS_X 5
+#if ENABLED(LK1_Pro_AutoBed) || ENABLED(LKPro_BLTOUCH)
+  #define GRID_MAX_POINTS_X 5
 #else
-#define GRID_MAX_POINTS_X 3
+  #define GRID_MAX_POINTS_X 3
 #endif
 #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
@@ -1854,10 +1864,10 @@
  * - Allows Z homing only when XY positions are known and trusted.
  * - If stepper drivers sleep, XY homing may be required again before Z homing.
  */
-#if ENABLED(LK1_Pro_AutoBed) || ENABLED(LK4_Pro_BLTOUCH)
-#define Z_SAFE_HOMING
+#if ENABLED(LK1_Pro_AutoBed) || ENABLED(LKPro_BLTOUCH)
+  #define Z_SAFE_HOMING
 #else
-//#define Z_SAFE_HOMING
+  //#define Z_SAFE_HOMING
 #endif
 
 #if ENABLED(Z_SAFE_HOMING)
@@ -1951,7 +1961,8 @@
 #define EEPROM_CHITCHAT    // Give feedback on EEPROM commands. Disable to save PROGMEM.
 #define EEPROM_BOOT_SILENT // Keep M503 quiet and only give errors during first load
 #if ENABLED(EEPROM_SETTINGS)
-//#define EEPROM_AUTO_INIT  // Init EEPROM automatically on any errors.
+  //#define EEPROM_AUTO_INIT  // Init EEPROM automatically on any errors.
+  //#define EEPROM_INIT_NOW   // Init EEPROM on first boot after a new build.
 #endif
 
 //
@@ -2514,6 +2525,11 @@
 //#define miniVIKI
 
 //
+// Alfawise Ex8 printer LCD marked as WYH L12864 COG
+//
+//#define WYH_L12864
+
+//
 // MakerLab Mini Panel with graphic
 // controller and SD support - https://reprap.org/wiki/Mini_panel
 //
@@ -2581,6 +2597,11 @@
 //#define FYSETC_MINI_12864_2_0    // Type A/B. Discreet RGB Backlight
 //#define FYSETC_MINI_12864_2_1    // Type A/B. NeoPixel RGB Backlight
 //#define FYSETC_GENERIC_12864_1_1 // Larger display with basic ON/OFF backlight.
+
+//
+// BigTreeTech Mini 12864 V1.0 is an alias for FYSETC_MINI_12864_2_1. Type A/B. NeoPixel RGB Backlight.
+//
+//#define BTT_MINI_12864_V1
 
 //
 // Factory display for Creality CR-10
@@ -2779,32 +2800,32 @@
  */
 
 //
-// 480x320, 3.5", SPI Display From MKS
-// Normally used in MKS Robin Nano V2
+// 480x320, 3.5", SPI Display with Rotary Encoder from MKS
+// Usually paired with MKS Robin Nano V2 & V3
 //
 //#define MKS_TS35_V2_0
 
 //
 // 320x240, 2.4", FSMC Display From MKS
-// Normally used in MKS Robin Nano V1.2
+// Usually paired with MKS Robin Nano V1.2
 //
 //#define MKS_ROBIN_TFT24
 
 //
 // 320x240, 2.8", FSMC Display From MKS
-// Normally used in MKS Robin Nano V1.2
+// Usually paired with MKS Robin Nano V1.2
 //
 //#define MKS_ROBIN_TFT28
 
 //
 // 320x240, 3.2", FSMC Display From MKS
-// Normally used in MKS Robin Nano V1.2
+// Usually paired with MKS Robin Nano V1.2
 //
 //#define MKS_ROBIN_TFT32
 
 //
 // 480x320, 3.5", FSMC Display From MKS
-// Normally used in MKS Robin Nano V1.2
+// Usually paired with MKS Robin Nano V1.2
 //
 //#define MKS_ROBIN_TFT35
 
@@ -2815,7 +2836,7 @@
 
 //
 // 320x240, 3.2", FSMC Display From MKS
-// Normally used in MKS Robin
+// Usually paired with MKS Robin
 //
 //#define MKS_ROBIN_TFT_V1_1R
 
@@ -2845,9 +2866,14 @@
 //#define ANET_ET5_TFT35
 
 //
-// 1024x600, 7", RGB Stock Display from BIQU-BX
+// 1024x600, 7", RGB Stock Display with Rotary Encoder from BIQU-BX
 //
 //#define BIQU_BX_TFT70
+
+//
+// 480x320, 3.5", SPI Stock Display with Rotary Encoder from BIQU B1 SE Series
+//
+//#define BTT_TFT35_SPI_V1_0
 
 //
 // Generic TFT with detailed options
@@ -2903,23 +2929,11 @@
 //
 // Ender-3 v2 OEM display. A DWIN display with Rotary Encoder.
 //
-//#define DWIN_CREALITY_LCD
-
-//
-// Ender-3 v2 OEM display, enhanced.
-//
-//#define DWIN_CREALITY_LCD_ENHANCED
-
-//
-// Ender-3 v2 OEM display with enhancements by Jacob Myers
-//
-//#define DWIN_CREALITY_LCD_JYERSUI
-
-//
-// MarlinUI for Creality's DWIN display (and others)
-//
-//#define DWIN_MARLINUI_PORTRAIT
-//#define DWIN_MARLINUI_LANDSCAPE
+//#define DWIN_CREALITY_LCD           // Creality UI
+//#define DWIN_CREALITY_LCD_ENHANCED  // Enhanced UI
+//#define DWIN_CREALITY_LCD_JYERSUI   // Jyers UI by Jacob Myers
+//#define DWIN_MARLINUI_PORTRAIT      // MarlinUI (portrait orientation)
+//#define DWIN_MARLINUI_LANDSCAPE     // MarlinUI (landscape orientation)
 
 //
 // Touch Screen Settings
@@ -2955,6 +2969,11 @@
 //#define REPRAPWORLD_KEYPAD
 //#define REPRAPWORLD_KEYPAD_MOVE_STEP 10.0 // (mm) Distance to move per key-press
 
+//
+// EasyThreeD ET-4000+ with button input and status LED
+//
+//#define EASYTHREED_UI
+
 //=============================================================================
 //=============================== Extra Features ==============================
 //=============================================================================
@@ -2964,9 +2983,6 @@
 // Set number of user-controlled fans. Disable to use all board-defined fans.
 // :[1,2,3,4,5,6,7,8]
 //#define NUM_M106_FANS 1
-
-// Increase the FAN PWM frequency. Removes the PWM noise but increases heating in the FET/Arduino
-//#define FAST_PWM_FAN
 
 // Use software PWM to drive the fan, as for the heaters. This uses a very low frequency
 // which is not as annoying as with the hardware PWM. On the other hand, if this frequency

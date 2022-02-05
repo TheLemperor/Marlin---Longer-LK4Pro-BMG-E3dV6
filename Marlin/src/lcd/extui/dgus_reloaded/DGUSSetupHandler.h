@@ -21,8 +21,7 @@
  */
 #pragma once
 
-namespace DGUSSetupHandler
-{
+namespace DGUSSetupHandler {
 
 #if ENABLED(SDSUPPORT)
     bool Print();

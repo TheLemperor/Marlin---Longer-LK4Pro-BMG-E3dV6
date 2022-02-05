@@ -24,8 +24,7 @@
 #include "DGUSDisplay.h"
 #include "definition/DGUS_VP.h"
 
-namespace DGUSRxHandler
-{
+namespace DGUSRxHandler {
 
     void ScreenChange(DGUS_VP &, void *);
 
@@ -126,28 +125,21 @@ namespace DGUSRxHandler
     void StringToExtra(DGUS_VP &, void *);
 
     template <typename T>
-    void IntegerToExtra(DGUS_VP &vp, void *data_ptr)
-    {
-        if (!vp.size || !vp.extra)
-            return;
-        switch (vp.size)
-        {
-        default:
-            return;
-        case 1:
-        {
+    void IntegerToExtra(DGUS_VP &vp, void *data_ptr) {
+        if (!vp.size || !vp.extra) return;
+        switch (vp.size) {
+        default: return;
+        case 1: {
             const uint8_t data = *(uint8_t *)data_ptr;
             *(T *)vp.extra = (T)data;
             break;
         }
-        case 2:
-        {
+        case 2: {
             const uint16_t data = Swap16(*(uint16_t *)data_ptr);
             *(T *)vp.extra = (T)data;
             break;
         }
-        case 4:
-        {
+        case 4: {
             const uint32_t data = dgus_display.SwapBytes(*(uint32_t *)data_ptr);
             *(T *)vp.extra = (T)data;
             break;

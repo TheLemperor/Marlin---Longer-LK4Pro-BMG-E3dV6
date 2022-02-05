@@ -35,9 +35,9 @@
 uint8_t DGUSScreenHandler::debug_count = 0;
 
 #if ENABLED(SDSUPPORT)
-ExtUI::FileList DGUSScreenHandler::filelist;
-uint16_t DGUSScreenHandler::filelist_offset = 0;
-int16_t DGUSScreenHandler::filelist_selected = -1;
+  ExtUI::FileList DGUSScreenHandler::filelist;
+  uint16_t DGUSScreenHandler::filelist_offset = 0;
+  int16_t DGUSScreenHandler::filelist_selected = -1;
 #endif
 
 DGUS_Data::StepSize DGUSScreenHandler::offset_steps = DGUS_Data::StepSize::MMP1;
@@ -76,30 +76,30 @@ millis_t DGUSScreenHandler::eeprom_save = 0;
 #if LCD_LANGUAGE == fr //  French version for status messages
 
 const char DGUS_MSG_HOMING_REQUIRED[] PROGMEM = "Retour a l'origine necessaire...",
-DGUS_MSG_BUSY[] PROGMEM = "Occupe...",
-DGUS_MSG_UNDEF[] PROGMEM = "-",
-DGUS_MSG_HOMING[] PROGMEM = "Retour a l'origine...",
-DGUS_MSG_FW_OUTDATED[] PROGMEM = "Mise a jour DWIN GUI/OS necessaire",
-DGUS_MSG_LEVELING_SUCCESS[] PROGMEM = "Nivellement realise avec succes",
-DGUS_MSG_LEVELING_FAILED[] PROGMEM = "Echec du nivellement...",
-DGUS_MSG_EEPROM_REINIT[] PROGMEM = "Reinitialisation de l'EEPROM",
-DGUS_MSG_EEPROM_FAILED[] PROGMEM = "Echec ecriture de l'EEPROM",
-DGUS_MSG_EEPROM_READ_FAILED[] PROGMEM = "Echec lecture de l'EEPROM",
-DGUS_MSG_FILAMENT_RUNOUT[] PROGMEM = "Filament sur buse E%d";
+                                      DGUS_MSG_BUSY[] PROGMEM = "Occupe...",
+                                      DGUS_MSG_UNDEF[] PROGMEM = "-",
+                                      DGUS_MSG_HOMING[] PROGMEM = "Retour a l'origine...",
+                                      DGUS_MSG_FW_OUTDATED[] PROGMEM = "Mise a jour DWIN GUI/OS necessaire",
+                                      DGUS_MSG_LEVELING_SUCCESS[] PROGMEM = "Nivellement realise avec succes",
+                                      DGUS_MSG_LEVELING_FAILED[] PROGMEM = "Echec du nivellement...",
+                                      DGUS_MSG_EEPROM_REINIT[] PROGMEM = "Reinitialisation de l'EEPROM",
+                                      DGUS_MSG_EEPROM_FAILED[] PROGMEM = "Echec ecriture de l'EEPROM",
+                                      DGUS_MSG_EEPROM_READ_FAILED[] PROGMEM = "Echec lecture de l'EEPROM",
+                                      DGUS_MSG_FILAMENT_RUNOUT[] PROGMEM = "Filament sur buse E%d";
 
 #else
 const char DGUS_MSG_HOMING_REQUIRED[] PROGMEM = "Homing necessary...",
-DGUS_MSG_BUSY[] PROGMEM = "Busy...",
-DGUS_MSG_UNDEF[] PROGMEM = "-",
-DGUS_MSG_HOMING[] PROGMEM = "Homing...",
-DGUS_MSG_FW_OUTDATED[] PROGMEM = "Update to DWIN GUI/OS required",
-DGUS_MSG_LEVELING_SUCCESS[] PROGMEM = "Leveling success",
-DGUS_MSG_LEVELING_FAILED[] PROGMEM = "Leveling failed...",
-DGUS_MSG_EEPROM_REINIT[] PROGMEM = "Reinitializing EEPROM",
-DGUS_MSG_EEPROM_FAILED[] PROGMEM = "Failed to write EEPROM",
-DGUS_MSG_EEPROM_READ_FAILED[] PROGMEM = "Failed to read EEPROM",
-DGUS_MSG_FILAMENT_RUNOUT[] PROGMEM = "Filament runout E%d",
-DGUS_MSG_ABL_REQUIRED[] PROGMEM = "Auto bed leveling required";
+                                      DGUS_MSG_BUSY[] PROGMEM = "Busy...",
+                                      DGUS_MSG_UNDEF[] PROGMEM = "-",
+                                      DGUS_MSG_HOMING[] PROGMEM = "Homing...",
+                                      DGUS_MSG_FW_OUTDATED[] PROGMEM = "Update to DWIN GUI/OS required",
+                                      DGUS_MSG_LEVELING_SUCCESS[] PROGMEM = "Leveling success",
+                                      DGUS_MSG_LEVELING_FAILED[] PROGMEM = "Leveling failed...",
+                                      DGUS_MSG_EEPROM_REINIT[] PROGMEM = "Reinitializing EEPROM",
+                                      DGUS_MSG_EEPROM_FAILED[] PROGMEM = "Failed to write EEPROM",
+                                      DGUS_MSG_EEPROM_READ_FAILED[] PROGMEM = "Failed to read EEPROM",
+                                      DGUS_MSG_FILAMENT_RUNOUT[] PROGMEM = "Filament runout E%d",
+                                      DGUS_MSG_ABL_REQUIRED[] PROGMEM = "Auto bed leveling required";
 
 #endif
 #undef en
@@ -107,7 +107,7 @@ DGUS_MSG_ABL_REQUIRED[] PROGMEM = "Auto bed leveling required";
 #undef fr
 
 const char DGUS_CMD_HOME[] PROGMEM = "G28",
-DGUS_CMD_EEPROM_SAVE[] PROGMEM = "M500";
+           DGUS_CMD_EEPROM_SAVE[] PROGMEM = "M500";
 
 //PauseMode pause_mode = PAUSE_MODE_PAUSE_PRINT;
 
@@ -169,8 +169,9 @@ void DGUSScreenHandler::Loop() {
   if (current_screen == DGUS_Screen::LEVELING_PROBING && IsPrinterIdle())     {
     dgus_display.PlaySound(3);
 
-    SetStatusMessagePGM(ExtUI::getMeshValid() ? DGUS_MSG_LEVELING_SUCCESS
-      : DGUS_MSG_LEVELING_FAILED);
+    SetStatusMessage(ExtUI::getMeshValid() ? 
+                       FPSTR(DGUS_MSG_LEVELING_SUCCESS)
+                     : FPSTR(DGUS_MSG_LEVELING_FAILED));
 
     MoveToScreen(DGUS_Screen::LEVELING_AUTOMATIC);
     return;
@@ -178,7 +179,7 @@ void DGUSScreenHandler::Loop() {
 #endif
 
   if (status_expire > 0 && ELAPSED(ms, status_expire))     {
-    SetStatusMessagePGM(NUL_STR, 0);
+    SetStatusMessage(FPSTR(NUL_STR), 0);
     return;
   }
 
@@ -192,9 +193,9 @@ void DGUSScreenHandler::Loop() {
   dgus_display.Loop();
 }
 
-void DGUSScreenHandler::PrinterKilled(PGM_P error, PGM_P component) {
-  SetMessageLinePGM(error, 1);
-  SetMessageLinePGM(component, 2);
+void DGUSScreenHandler::PrinterKilled(FSTR_P const error, FSTR_P const component) {
+  SetMessageLinePGM(FTOP(error), 1);
+  SetMessageLinePGM(FTOP(component), 2);
   SetMessageLinePGM(NUL_STR, 3);
   SetMessageLinePGM(GET_TEXT(MSG_PLEASE_RESET), 4);
 
@@ -224,7 +225,7 @@ void DGUSScreenHandler::SettingsReset() {
     Ready();
   }
 
-  SetStatusMessagePGM(DGUS_MSG_EEPROM_REINIT);
+  SetStatusMessage(FPSTR(DGUS_MSG_EEPROM_REINIT));
 }
 
 void DGUSScreenHandler::StoreSettings(char* buff) {
@@ -262,13 +263,13 @@ void DGUSScreenHandler::LoadSettings(const char* buff) {
 
 void DGUSScreenHandler::ConfigurationStoreWritten(bool success) {
   if (!success)     {
-    SetStatusMessagePGM(DGUS_MSG_EEPROM_FAILED);
+    SetStatusMessage(FPSTR(DGUS_MSG_EEPROM_FAILED));
   }
 }
 
 void DGUSScreenHandler::ConfigurationStoreRead(bool success) {
   if (!success)     {
-    SetStatusMessagePGM(DGUS_MSG_EEPROM_READ_FAILED);
+    SetStatusMessage(FPSTR(DGUS_MSG_EEPROM_READ_FAILED));
   }
   else if (!settings_ready)     {
     settings_ready = true;
@@ -389,8 +390,8 @@ void DGUSScreenHandler::SDCardRemoved() {
   }
 }
 
-void DGUSScreenHandler::SDCardError() {
-  SetStatusMessagePGM(GET_TEXT(MSG_MEDIA_READ_ERROR));
+  void DGUSScreenHandler::SDCardError() {
+    SetStatusMessage(GET_TEXT_F(MSG_MEDIA_READ_ERROR));
 
   if (current_screen == DGUS_Screen::PRINT)     {
     TriggerScreenChange(DGUS_Screen::HOME);
@@ -409,26 +410,30 @@ void DGUSScreenHandler::PowerLossResume() {
 
 #if HAS_PID_HEATING
 
-void DGUSScreenHandler::PidTuning(const ExtUI::result_t rst) {
-  switch (rst)     {
-  case ExtUI::PID_STARTED:
-    break;
-  case ExtUI::PID_DONE:
-    SetStatusMessagePGM(GET_TEXT(MSG_PID_AUTOTUNE_DONE));
-    break;
-  case ExtUI::PID_BAD_EXTRUDER_NUM:
-    SetStatusMessagePGM(GET_TEXT(MSG_PID_BAD_EXTRUDER_NUM));
-    break;
-  case ExtUI::PID_TEMP_TOO_HIGH:
-    SetStatusMessagePGM(GET_TEXT(MSG_PID_TEMP_TOO_HIGH));
-    break;
-  case ExtUI::PID_TUNING_TIMEOUT:
-    SetStatusMessagePGM(GET_TEXT(MSG_PID_TIMEOUT));
-    break;
+  void DGUSScreenHandler::PidTuning(const ExtUI::result_t rst) {
+    switch (rst) {
+      case ExtUI::PID_STARTED:
+        SetStatusMessage(GET_TEXT_F(MSG_PID_AUTOTUNE));
+        break;
+      case ExtUI::PID_BAD_EXTRUDER_NUM:
+        SetStatusMessage(GET_TEXT_F(MSG_PID_BAD_EXTRUDER_NUM));
+        break;
+      case ExtUI::PID_TEMP_TOO_HIGH:
+        SetStatusMessage(GET_TEXT_F(MSG_PID_TEMP_TOO_HIGH));
+        break;
+      case ExtUI::PID_TUNING_TIMEOUT:
+        SetStatusMessage(GET_TEXT_F(MSG_PID_TIMEOUT));
+        break;
+      case ExtUI::PID_DONE:
+        SetStatusMessage(GET_TEXT_F(MSG_PID_AUTOTUNE_DONE));
+        break;
+      default:
+        return;
+    }
+
+    dgus_display.PlaySound(3);
   }
 
-  dgus_display.PlaySound(3);
-}
 
 #endif // HAS_PID_HEATING
 
@@ -590,8 +595,8 @@ void DGUSScreenHandler::SetStatusMessage(const char* msg, const millis_t duratio
   status_expire = (duration > 0 ? ExtUI::safe_millis() + duration : 0);
 }
 
-void DGUSScreenHandler::SetStatusMessagePGM(PGM_P msg, const millis_t duration) {
-  dgus_display.WriteStringPGM((uint16_t)DGUS_Addr::MESSAGE_Status, msg, DGUS_STATUS_LEN, false, true);
+void DGUSScreenHandler::SetStatusMessage(FSTR_P const fmsg, const millis_t duration) {
+  dgus_display.WriteStringPGM((uint16_t)DGUS_Addr::MESSAGE_Status, FTOP(fmsg), DGUS_STATUS_LEN, false, true);
 
   status_expire = (duration > 0 ? ExtUI::safe_millis() + duration : 0);
 }
@@ -600,13 +605,13 @@ void DGUSScreenHandler::SetTextSize(DGUS_Addr var, uint16_t len, const int16_t* 
   if (len == 0)     {
     return;
   }
-  DEBUG_ECHOLNPGM("setsize len ", len);
+  DEBUG_ECHOLNPAIR_F("setsize len ", len);
   // set text size and box size based on filename length
   int boxWidth = boxSize[2];
   int maxCharWidth = boxWidth / len;
   int fontWidth = _MIN(maxCharWidth, 10);
   uint16_t fontSize = Swap16((fontWidth << 8) | (fontWidth * 2));
-  DEBUG_ECHOLNPGM("boxwidth ", boxWidth, " maxcharwidth ", maxCharWidth, " fontwidth ", fontWidth);
+  DEBUG_ECHOLNPAIR_F("boxwidth ", boxWidth, " maxcharwidth ", maxCharWidth, " fontwidth ", fontWidth);
 
   dgus_display.Write((uint16_t)var + (int)DGUS_SP_Text::FONT_SIZE, fontSize);
 
@@ -614,14 +619,14 @@ void DGUSScreenHandler::SetTextSize(DGUS_Addr var, uint16_t len, const int16_t* 
   int height = fontWidth * 2;
   int heightDiff = (height - boxSize[3]) / 2;
   int widthDiff = (fontWidth * (int)len - boxSize[2]) / 2;
-  DEBUG_ECHOLNPGM("heightdiff ", heightDiff, " widthdiff ", widthDiff);
+  DEBUG_ECHOLNPAIR_F("heightdiff ", heightDiff, " widthdiff ", widthDiff);
   uint16_t box[4];
   box[0] = Swap16(boxSize[0] - (center ? widthDiff : 0));
   box[1] = Swap16(boxSize[1] - heightDiff);
   box[2] = Swap16(boxSize[2] + boxSize[0] - 1 + (center ? widthDiff : 0));
   box[3] = Swap16(boxSize[3] + boxSize[1] - 1 + heightDiff);
-  DEBUG_ECHOLNPGM("xs ", boxSize[0] - (center ? widthDiff : 0), " ys ", boxSize[1] - heightDiff, " xe ", boxSize[2] + boxSize[0] - 1 + (center ? widthDiff : 0), " ye ", boxSize[3] + boxSize[1] - 1 + heightDiff);
-  dgus_display.Write((uint16_t)var + (int)DGUS_SP_Text::BOX, box, 4 * sizeof(uint16_t));
+  DEBUG_ECHOLNPAIR_F("xs ", boxSize[0] - (center ? widthDiff : 0), " ys ", boxSize[1] - heightDiff, " xe ", boxSize[2] + boxSize[0]-1 +  (center ? widthDiff : 0)," ye ", boxSize[3] + boxSize[1] - 1 + heightDiff);
+  dgus_display.Write((uint16_t)var + (int)DGUS_SP_Text::BOX, box, 4*sizeof(uint16_t));
 
   uint16_t xy[2];
   xy[0] = box[0];
@@ -716,7 +721,7 @@ void DGUSScreenHandler::MoveToScreen(DGUS_Screen screen, bool abort_wait) {
     return;
   }
 
-  DEBUG_ECHOLNPGM("From screen ", (uint16_t)current_screen, " to screen ", (uint16_t)screen);
+  DEBUG_ECHOLNPAIR_F("From screen ", (uint16_t)current_screen, " to screen ", (uint16_t)screen);
   current_screen = screen;
   dgus_display.SwitchScreen(current_screen);
 }

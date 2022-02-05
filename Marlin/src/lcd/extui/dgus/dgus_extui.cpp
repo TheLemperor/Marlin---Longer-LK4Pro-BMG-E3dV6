@@ -33,42 +33,36 @@
 #include "DGUSDisplayDef.h"
 #include "DGUSScreenHandler.h"
 
-namespace ExtUI
-{
+namespace ExtUI {
 
-    void onStartup()
-    {
-        dgusdisplay.InitDisplay();
-        ScreenHandler.UpdateScreenVPData();
-    }
+  void onStartup() {
+    dgusdisplay.InitDisplay();
+    ScreenHandler.UpdateScreenVPData();
+  }
 
-    void onIdle() { ScreenHandler.loop(); }
+  void onIdle() { ScreenHandler.loop(); }
 
-    void onPrinterKilled(PGM_P const error, PGM_P const component)
-    {
-        ScreenHandler.sendinfoscreen(GET_TEXT(MSG_HALTED), error, NUL_STR, GET_TEXT(MSG_PLEASE_RESET), true, true, true, true);
-        ScreenHandler.GotoScreen(DGUSLCD_SCREEN_KILL);
-        while (!ScreenHandler.loop())
-            ; // Wait while anything is left to be sent
-    }
+  void onPrinterKilled(FSTR_P const error, FSTR_P const) {
+    ScreenHandler.sendinfoscreen(GET_TEXT_F(MSG_HALTED), error, FPSTR(NUL_STR), GET_TEXT_F(MSG_PLEASE_RESET), true, true, true, true);
+    ScreenHandler.GotoScreen(DGUSLCD_SCREEN_KILL);
+    while (!ScreenHandler.loop());  // Wait while anything is left to be sent
+  }
 
-    void onMediaInserted() { TERN_(SDSUPPORT, ScreenHandler.SDCardInserted()); }
-    void onMediaError() { TERN_(SDSUPPORT, ScreenHandler.SDCardError()); }
-    void onMediaRemoved() { TERN_(SDSUPPORT, ScreenHandler.SDCardRemoved()); }
+  void onMediaInserted() { TERN_(SDSUPPORT, ScreenHandler.SDCardInserted()); }
+  void onMediaError()    { TERN_(SDSUPPORT, ScreenHandler.SDCardError()); }
+  void onMediaRemoved()  { TERN_(SDSUPPORT, ScreenHandler.SDCardRemoved()); }
 
-    void onPlayTone(const uint16_t frequency, const uint16_t duration) {}
-    void onPrintTimerStarted() {}
-    void onPrintTimerPaused() {}
-    void onPrintTimerStopped() {}
-    void onFilamentRunout(const extruder_t extruder) {}
+  void onPlayTone(const uint16_t frequency, const uint16_t duration) {}
+  void onPrintTimerStarted() {}
+  void onPrintTimerPaused() {}
+  void onPrintTimerStopped() {}
+  void onFilamentRunout(const extruder_t extruder) {}
 
-    void onUserConfirmRequired(const char *const msg)
-    {
-        if (msg)
-        {
-            ScreenHandler.sendinfoscreen(PSTR("Please confirm."), nullptr, msg, nullptr, true, true, false, true);
-            ScreenHandler.SetupConfirmAction(setUserConfirmed);
-            ScreenHandler.GotoScreen(DGUSLCD_SCREEN_POPUP);
+  void onUserConfirmRequired(const char * const msg) {
+    if (msg) {
+      ScreenHandler.sendinfoscreen(F("Please confirm."), nullptr, msg, nullptr, true, true, false, true);
+      ScreenHandler.SetupConfirmAction(setUserConfirmed);
+      ScreenHandler.GotoScreen(DGUSLCD_SCREEN_POPUP);
         }
         else if (ScreenHandler.getCurrentScreen() == DGUSLCD_SCREEN_POPUP)
         {

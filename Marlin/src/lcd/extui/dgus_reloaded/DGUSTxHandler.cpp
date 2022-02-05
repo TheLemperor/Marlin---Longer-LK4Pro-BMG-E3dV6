@@ -288,20 +288,19 @@ void DGUSTxHandler::Flowrate(DGUS_VP& vp) {
 void DGUSTxHandler::TempMax(DGUS_VP& vp) {
   uint16_t temp;
 
-  switch (vp.addr)     {
-  default:
-    return;
-  case DGUS_Addr::TEMP_Max_Bed:
-    temp = BED_MAX_TARGET;
-    break;
-  case DGUS_Addr::TEMP_Max_H0:
-    temp = HEATER_0_MAXTEMP - HOTEND_OVERSHOOT;
-    break;
-  #if HOTENDS > 1
-  case DGUS_Addr::TEMP_Max_H1:
-    temp = HEATER_1_MAXTEMP - HOTEND_OVERSHOOT;
-    break;
-  #endif
+  switch (vp.addr) {
+    default: return;
+    case DGUS_Addr::TEMP_Max_Bed:
+      temp = BED_MAX_TARGET;
+      break;
+    case DGUS_Addr::TEMP_Max_H0:
+      temp = HEATER_0_MAXTEMP - HOTEND_OVERSHOOT;
+      break;
+    #if HAS_MULTI_HOTEND
+      case DGUS_Addr::TEMP_Max_H1:
+        temp = HEATER_1_MAXTEMP - HOTEND_OVERSHOOT;
+        break;
+    #endif
   }
 
   dgus_display.Write((uint16_t)vp.addr, Swap16(temp));
@@ -371,10 +370,10 @@ void DGUSTxHandler::ABLGrid(DGUS_VP& vp) {
     point.x = i % GRID_MAX_POINTS_X;
     point.y = i / GRID_MAX_POINTS_X;
     fixed = dgus_display.ToFixedPoint<float, int16_t, 3>(ExtUI::getMeshPoint(point));
-    DEBUG_ECHOLNPGM("grid x ", point.x, " y ", point.y, " value ", fixed);
+    DEBUG_ECHOLNPAIR_F("grid x ", point.x, " y ", point.y, " value ", fixed);
     data[i] = Swap16(fixed);
   }
-  DEBUG_ECHOLNPGM("sending byte count", sizeof(*data) * DGUS_LEVEL_GRID_SIZE);
+  DEBUG_ECHOLNPAIR_F("sending byte count", sizeof(*data) * DGUS_LEVEL_GRID_SIZE);
   dgus_display.Write((uint16_t)vp.addr, data, sizeof(*data) * DGUS_LEVEL_GRID_SIZE);
 }
 
@@ -460,24 +459,23 @@ void DGUSTxHandler::PIDIcons(DGUS_VP& vp) {
 void DGUSTxHandler::PIDKp(DGUS_VP& vp) {
   float value;
 
-  switch (dgus_screen_handler.pid_heater)     {
-  default:
-    return;
-  #if ENABLED(PIDTEMPBED)
-  case DGUS_Data::Heater::BED:
-    value = ExtUI::getBedPIDValues_Kp();
-    break;
-  #endif
-  #if ENABLED(PIDTEMP)
-  case DGUS_Data::Heater::H0:
-    value = ExtUI::getPIDValues_Kp(ExtUI::E0);
-    break;
-  #if HOTENDS > 1
-  case DGUS_Data::Heater::H1:
-    value = ExtUI::getPIDValues_Kp(ExtUI::E1);
-    break;
-  #endif
-  #endif
+  switch (dgus_screen_handler.pid_heater) {
+    default: return;
+    #if ENABLED(PIDTEMPBED)
+      case DGUS_Data::Heater::BED:
+        value = ExtUI::getBedPIDValues_Kp();
+        break;
+    #endif
+    #if ENABLED(PIDTEMP)
+      case DGUS_Data::Heater::H0:
+        value = ExtUI::getPIDValues_Kp(ExtUI::E0);
+        break;
+      #if HAS_MULTI_HOTEND
+        case DGUS_Data::Heater::H1:
+          value = ExtUI::getPIDValues_Kp(ExtUI::E1);
+          break;
+      #endif
+    #endif
   }
 
   const int32_t data = dgus_display.ToFixedPoint<float, int32_t, 2>(value);
@@ -487,24 +485,23 @@ void DGUSTxHandler::PIDKp(DGUS_VP& vp) {
 void DGUSTxHandler::PIDKi(DGUS_VP& vp) {
   float value;
 
-  switch (dgus_screen_handler.pid_heater)     {
-  default:
-    return;
-  #if ENABLED(PIDTEMPBED)
-  case DGUS_Data::Heater::BED:
-    value = ExtUI::getBedPIDValues_Ki();
-    break;
-  #endif
-  #if ENABLED(PIDTEMP)
-  case DGUS_Data::Heater::H0:
-    value = ExtUI::getPIDValues_Ki(ExtUI::E0);
-    break;
-  #if HOTENDS > 1
-  case DGUS_Data::Heater::H1:
-    value = ExtUI::getPIDValues_Ki(ExtUI::E1);
-    break;
-  #endif
-  #endif
+  switch (dgus_screen_handler.pid_heater) {
+    default: return;
+    #if ENABLED(PIDTEMPBED)
+      case DGUS_Data::Heater::BED:
+        value = ExtUI::getBedPIDValues_Ki();
+        break;
+    #endif
+    #if ENABLED(PIDTEMP)
+      case DGUS_Data::Heater::H0:
+        value = ExtUI::getPIDValues_Ki(ExtUI::E0);
+        break;
+      #if HAS_MULTI_HOTEND
+        case DGUS_Data::Heater::H1:
+          value = ExtUI::getPIDValues_Ki(ExtUI::E1);
+          break;
+      #endif
+    #endif
   }
 
   const int32_t data = dgus_display.ToFixedPoint<float, int32_t, 2>(value);
@@ -514,24 +511,23 @@ void DGUSTxHandler::PIDKi(DGUS_VP& vp) {
 void DGUSTxHandler::PIDKd(DGUS_VP& vp) {
   float value;
 
-  switch (dgus_screen_handler.pid_heater)     {
-  default:
-    return;
-  #if ENABLED(PIDTEMPBED)
-  case DGUS_Data::Heater::BED:
-    value = ExtUI::getBedPIDValues_Kd();
-    break;
-  #endif
-  #if ENABLED(PIDTEMP)
-  case DGUS_Data::Heater::H0:
-    value = ExtUI::getPIDValues_Kd(ExtUI::E0);
-    break;
-  #if HOTENDS > 1
-  case DGUS_Data::Heater::H1:
-    value = ExtUI::getPIDValues_Kd(ExtUI::E1);
-    break;
-  #endif
-  #endif
+  switch (dgus_screen_handler.pid_heater) {
+    default: return;
+    #if ENABLED(PIDTEMPBED)
+      case DGUS_Data::Heater::BED:
+        value = ExtUI::getBedPIDValues_Kd();
+        break;
+    #endif
+    #if ENABLED(PIDTEMP)
+      case DGUS_Data::Heater::H0:
+        value = ExtUI::getPIDValues_Kd(ExtUI::E0);
+        break;
+      #if HAS_MULTI_HOTEND
+        case DGUS_Data::Heater::H1:
+          value = ExtUI::getPIDValues_Kd(ExtUI::E1);
+          break;
+      #endif
+    #endif
   }
 
   const int32_t data = dgus_display.ToFixedPoint<float, int32_t, 2>(value);

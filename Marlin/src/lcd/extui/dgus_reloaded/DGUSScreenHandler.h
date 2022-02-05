@@ -29,32 +29,31 @@
 #include "../ui_api.h"
 #include "../../../inc/MarlinConfigPre.h"
 
-class DGUSScreenHandler
-{
+class DGUSScreenHandler {
 public:
-    DGUSScreenHandler() = default;
+  DGUSScreenHandler() = default;
 
-    static void Init();
-    static void Ready();
-    static void Loop();
+  static void Init();
+  static void Ready();
+  static void Loop();
 
-    static void PrinterKilled(PGM_P error, PGM_P component);
-    static void UserConfirmRequired(const char *const msg);
-    static void SettingsReset();
-    static void StoreSettings(char *buff);
-    static void LoadSettings(const char *buff);
-    static void ConfigurationStoreWritten(bool success);
-    static void ConfigurationStoreRead(bool success);
+  static void PrinterKilled(FSTR_P const error, FSTR_P const component);
+  static void UserConfirmRequired(const char * const msg);
+  static void SettingsReset();
+  static void StoreSettings(char *buff);
+  static void LoadSettings(const char *buff);
+  static void ConfigurationStoreWritten(bool success);
+  static void ConfigurationStoreRead(bool success);
 
-    static void PlayTone(const uint16_t frequency, const uint16_t duration);
-    static void MeshUpdate(const int8_t xpos, const int8_t ypos);
-    static void PrintTimerStarted();
-    static void PrintTimerPaused();
-    static void PrintTimerStopped();
-    static void PrintFinished();
-    static void FilamentRunout(const ExtUI::extruder_t extruder);
+  static void PlayTone(const uint16_t frequency, const uint16_t duration);
+  static void MeshUpdate(const int8_t xpos, const int8_t ypos);
+  static void PrintTimerStarted();
+  static void PrintTimerPaused();
+  static void PrintTimerStopped();
+  static void PrintFinished();
+  static void FilamentRunout(const ExtUI::extruder_t extruder);
 
-#if ENABLED(SDSUPPORT)
+  #if ENABLED(SDSUPPORT)
     /// Marlin informed us that a new SD has been inserted.
     static void SDCardInserted();
     /// Marlin informed us that the SD Card has been removed().
@@ -75,9 +74,8 @@ public:
 
     static void SetMessageLine(const char *msg, uint8_t line);
     static void SetMessageLinePGM(PGM_P msg, uint8_t line);
-
-    static void SetStatusMessage(const char *msg, const millis_t duration = DGUS_STATUS_EXPIRATION_MS);
-    static void SetStatusMessagePGM(PGM_P msg, const millis_t duration = DGUS_STATUS_EXPIRATION_MS);
+  static void SetStatusMessage(const char* msg, const millis_t duration = DGUS_STATUS_EXPIRATION_MS);
+  static void SetStatusMessage(FSTR_P const msg, const millis_t duration = DGUS_STATUS_EXPIRATION_MS);
 
     static void SetTextSize(DGUS_Addr var, uint16_t len, const int16_t *boxSize, bool center = false);
     static void ShowWaitScreen(DGUS_Screen return_screen, bool has_continue = false);
@@ -138,8 +136,7 @@ private:
     static millis_t status_expire;
     static millis_t eeprom_save;
 
-    typedef struct
-    {
+    typedef struct {
         bool initialized;
         uint8_t volume;
         uint8_t brightness;

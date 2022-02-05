@@ -109,7 +109,7 @@ void PrintJobRecovery::check() {
   if (card.isMounted()) {
     load();
     if (!valid()) return cancel();
-    queue.inject_P(PSTR("M1000S"));
+    queue.inject(F("M1000S"));
   }
 }
 
@@ -134,7 +134,7 @@ void PrintJobRecovery::load() {
     (void)file.read(&info, sizeof(info));
     close();
   }
-  debug(PSTR("Load"));
+  debug(F("Load"));
 }
 
 /**
@@ -248,7 +248,7 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=POW
 
         #if POWER_LOSS_RETRACT_LEN
           // Retract filament now
-          gcode.process_subcommands_now_P(PSTR("G1 F3000 E-" STRINGIFY(POWER_LOSS_RETRACT_LEN)));
+          gcode.process_subcommands_now(F("G1 F3000 E-" STRINGIFY(POWER_LOSS_RETRACT_LEN)));
         #endif
 
         #if POWER_LOSS_ZRAISE
@@ -305,7 +305,7 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=POW
       retract_and_lift(zraise);
     #endif
 
-    kill(GET_TEXT(MSG_OUTAGE_RECOVERY));
+    kill(GET_TEXT_F(MSG_OUTAGE_RECOVERY));
   }
 
 #endif
@@ -315,7 +315,7 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=POW
  */
 void PrintJobRecovery::write() {
 
-  debug(PSTR("Write"));
+  debug(F("Write"));
 
   open(false);
   file.seekSet(0);
@@ -341,7 +341,7 @@ void PrintJobRecovery::resume() {
 
   #if HAS_LEVELING
     // Make sure leveling is off before any G92 and G28
-    gcode.process_subcommands_now_P(PSTR("M420 S0 Z0"));
+    gcode.process_subcommands_now(F("M420 S0 Z0"));
   #endif
 
   #if HAS_HEATED_BED
@@ -377,7 +377,7 @@ void PrintJobRecovery::resume() {
   // establish the current position as best we can.
   //
 
-  gcode.process_subcommands_now_P(PSTR("G92.9E0")); // Reset E to 0
+  gcode.process_subcommands_now(F("G92.9E0")); // Reset E to 0
 
   #if Z_HOME_TO_MAX
 
@@ -414,7 +414,7 @@ void PrintJobRecovery::resume() {
     }
 
     // Home XY with no Z raise, and also home Z here if Z isn't homing down below.
-    gcode.process_subcommands_now_P(PSTR("G28R0" TERN_(HOME_XY_ONLY, "XY"))); // No raise during G28
+    gcode.process_subcommands_now(F("G28R0" TERN_(HOME_XY_ONLY, "XY"))); // No raise during G28
 
   #endif
 
@@ -517,7 +517,7 @@ void PrintJobRecovery::resume() {
 
   // Un-retract if there was a retract at outage
   #if ENABLED(BACKUP_POWER_SUPPLY) && POWER_LOSS_RETRACT_LEN > 0
-    gcode.process_subcommands_now_P(PSTR("G1E" STRINGIFY(POWER_LOSS_RETRACT_LEN) "F3000"));
+    gcode.process_subcommands_now(F("G1E" STRINGIFY(POWER_LOSS_RETRACT_LEN) "F3000"));
   #endif
 
   // Additional purge on resume if configured
@@ -527,7 +527,7 @@ void PrintJobRecovery::resume() {
   #endif
 
   #if ENABLED(NOZZLE_CLEAN_FEATURE)
-    gcode.process_subcommands_now_P(PSTR("G12"));
+    gcode.process_subcommands_now(F("G12"));
   #endif
 
   // Move back over to the saved XY
@@ -579,8 +579,8 @@ void PrintJobRecovery::resume() {
 
 #if ENABLED(DEBUG_POWER_LOSS_RECOVERY)
 
-  void PrintJobRecovery::debug(PGM_P const prefix) {
-    DEBUG_ECHOPGM_P(prefix);
+  void PrintJobRecovery::debug(FSTR_P const prefix) {
+    DEBUG_ECHOF(prefix);
     DEBUG_ECHOLNPGM(" Job Recovery Info...\nvalid_head:", info.valid_head, " valid_foot:", info.valid_foot);
     if (info.valid_head) {
       if (info.valid_head == info.valid_foot) {

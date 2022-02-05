@@ -32,12 +32,10 @@
 #include "../../../gcode/queue.h"
 
 #if ENABLED(SDSUPPORT)
-bool DGUSSetupHandler::Print()
-{
+bool DGUSSetupHandler::Print() {
     dgus_screen_handler.filelist.refresh();
 
-    while (!dgus_screen_handler.filelist.isAtRootDir())
-    {
+    while (!dgus_screen_handler.filelist.isAtRootDir()) {
         dgus_screen_handler.filelist.upDir();
     }
 
@@ -48,10 +46,8 @@ bool DGUSSetupHandler::Print()
 }
 #endif
 
-bool DGUSSetupHandler::PrintStatus()
-{
-    if (printingIsActive() || printingIsPaused())
-    {
+bool DGUSSetupHandler::PrintStatus() {
+    if (printingIsActive() || printingIsPaused()) {
         return true;
     }
 
@@ -59,10 +55,8 @@ bool DGUSSetupHandler::PrintStatus()
     return false;
 }
 
-bool DGUSSetupHandler::PrintAdjust()
-{
-    if (printingIsActive() || printingIsPaused())
-    {
+bool DGUSSetupHandler::PrintAdjust() {
+    if (printingIsActive() || printingIsPaused()) {
         return true;
     }
 
@@ -70,20 +64,17 @@ bool DGUSSetupHandler::PrintAdjust()
     return false;
 }
 
-bool DGUSSetupHandler::LevelingManual()
-{
+bool DGUSSetupHandler::LevelingManual() {
 #if HAS_LEVELING
     ExtUI::setLevelingActive(false);
 #endif
 
-    if (!dgus_screen_handler.IsPrinterIdle())
-    {
-        dgus_screen_handler.SetStatusMessagePGM(DGUS_MSG_BUSY);
+    if (!dgus_screen_handler.IsPrinterIdle()) {
+      dgus_screen_handler.SetStatusMessage(FPSTR(DGUS_MSG_BUSY));
         return false;
     }
 
-    if (dgus_screen_handler.levelingPoint > 0)
-    {
+    if (dgus_screen_handler.levelingPoint > 0) {
         // move to selected point
         dgus_screen_handler.MoveToLevelPoint();
     }
@@ -91,34 +82,28 @@ bool DGUSSetupHandler::LevelingManual()
 }
 
 #if HAS_LEVELING
-bool DGUSSetupHandler::LevelingMenu()
-{
+bool DGUSSetupHandler::LevelingMenu() {
 
-    if (!dgus_screen_handler.IsPrinterIdle())
-    {
-        dgus_screen_handler.SetStatusMessagePGM(DGUS_MSG_BUSY);
+    if (!dgus_screen_handler.IsPrinterIdle()) {
+        dgus_screen_handler.SetStatusMessage(FPSTR(DGUS_MSG_BUSY));
         return false;
     }
 
     return true;
 }
 
-bool DGUSSetupHandler::LevelingOffset()
-{
+bool DGUSSetupHandler::LevelingOffset() {
     ExtUI::setLevelingActive(dgus_screen_handler.leveling_active);
 
     dgus_screen_handler.offset_steps = DGUS_Data::StepSize::MMP1;
 
-    if (!dgus_screen_handler.IsPrinterIdle())
-    {
-        dgus_screen_handler.SetStatusMessagePGM(DGUS_MSG_BUSY);
+    if (!dgus_screen_handler.IsPrinterIdle()) {
+        dgus_screen_handler.SetStatusMessage(FPSTR(DGUS_MSG_BUSY));
         return false;
     }
 
-    if (ExtUI::isPositionKnown())
-    {
-        if (ExtUI::getAxisPosition_mm(ExtUI::Z) < 4.0f)
-        {
+    if (ExtUI::isPositionKnown()) {
+        if (ExtUI::getAxisPosition_mm(ExtUI::Z) < 4.0f) {
             queue.enqueue_now_P(PSTR("G0Z4"));
         }
 
@@ -142,10 +127,8 @@ bool DGUSSetupHandler::LevelingOffset()
     return false;
 }
 
-bool DGUSSetupHandler::LevelingAutomatic()
-{
-    if (ExtUI::getMeshValid())
-    {
+bool DGUSSetupHandler::LevelingAutomatic() {
+    if (ExtUI::getMeshValid()) {
         dgus_screen_handler.leveling_active = true;
 
         ExtUI::setLevelingActive(true);
@@ -154,8 +137,7 @@ bool DGUSSetupHandler::LevelingAutomatic()
     return true;
 }
 
-bool DGUSSetupHandler::LevelingProbing()
-{
+bool DGUSSetupHandler::LevelingProbing() {
     dgus_screen_handler.probing_icons[0] = 0;
     dgus_screen_handler.probing_icons[1] = 0;
 
@@ -169,50 +151,43 @@ bool DGUSSetupHandler::LevelingProbing()
 }
 #endif
 
-bool DGUSSetupHandler::Filament()
-{
+bool DGUSSetupHandler::Filament() {
     dgus_screen_handler.filament_extruder = DGUS_Data::Extruder::CURRENT;
     dgus_screen_handler.filament_length = DGUS_DEFAULT_FILAMENT_LEN;
 
     return true;
 }
 
-bool DGUSSetupHandler::Move()
-{
+bool DGUSSetupHandler::Move() {
     dgus_screen_handler.move_steps = DGUS_Data::StepSize::MM10;
 
-    if (!dgus_screen_handler.IsPrinterIdle())
-    {
-        dgus_screen_handler.SetStatusMessagePGM(DGUS_MSG_BUSY);
-        return false;
-    }
+  if (!dgus_screen_handler.IsPrinterIdle()) {
+    dgus_screen_handler.SetStatusMessage(FPSTR(DGUS_MSG_BUSY));
+    return false;
+  }
 
     return true;
 }
 
-bool DGUSSetupHandler::Gcode()
-{
+bool DGUSSetupHandler::Gcode() {
     ZERO(dgus_screen_handler.gcode);
 
-    if (dgus_display.gui_version < 0x30 || dgus_display.os_version < 0x21)
-    {
-        dgus_screen_handler.SetStatusMessagePGM(DGUS_MSG_FW_OUTDATED);
-        return false;
-    }
+  if (dgus_display.gui_version < 0x30 || dgus_display.os_version < 0x21) {
+    dgus_screen_handler.SetStatusMessage(FPSTR(DGUS_MSG_FW_OUTDATED));
+    return false;
+  }
 
     return true;
 }
 
-bool DGUSSetupHandler::PID()
-{
+bool DGUSSetupHandler::PID() {
     dgus_screen_handler.pid_heater = DGUS_Data::Heater::H0;
     dgus_screen_handler.pid_temp = DGUS_PLA_TEMP_HOTEND;
 
     return true;
 }
 
-bool DGUSSetupHandler::Infos()
-{
+bool DGUSSetupHandler::Infos() {
     dgus_screen_handler.debug_count = 0;
 
     return true;

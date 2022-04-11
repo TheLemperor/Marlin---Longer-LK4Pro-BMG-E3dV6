@@ -1,5 +1,6 @@
 # Marlin 2.0 Printer Firmware For Longer LK4 Pro.
 
+**IMPORTANT!! Do not try to update a LK5 Pro unless your current screen version in the About does not specify the letters "DW".
 
 ![GitHub](https://img.shields.io/github/license/marlinfirmware/marlin.svg)
 ![GitHub contributors](https://img.shields.io/github/contributors/marlinfirmware/marlin.svg)

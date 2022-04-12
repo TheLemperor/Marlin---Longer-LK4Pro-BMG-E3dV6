@@ -67,7 +67,9 @@ constexpr DGUS_Addr LIST_PRINT_STATUS[] PROGMEM = {
 };
 
 constexpr DGUS_Addr LIST_PRINT_ADJUST[] PROGMEM = {
+    DGUS_Addr::TEMP_Current_H0,
     DGUS_Addr::TEMP_Target_H0,
+    DGUS_Addr::TEMP_Current_Bed,
     DGUS_Addr::TEMP_Target_Bed,
     DGUS_Addr::FAN0_Speed,
     DGUS_Addr::ADJUST_Feedrate,

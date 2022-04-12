@@ -253,9 +253,8 @@ void DGUSScreenHandler::LoadSettings(const char* buff) {
   dgus_display.SetBrightness(data.initialized ? data.brightness : DGUS_DEFAULT_BRIGHTNESS);
 
 #if HAS_LEVELING
-  if (data.initialized)     {
+  if (data.initialized) {
     leveling_active = (data.abl && ExtUI::getMeshValid());
-
     ExtUI::setLevelingActive(leveling_active);
   }
 #endif
